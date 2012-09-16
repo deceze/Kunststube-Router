@@ -56,6 +56,15 @@ class Router {
 		throw new RuntimeException('No route matched');
 	}
 
+	public function reverseRoute(array $dispatch) {
+		foreach ($this->routes as $route) {
+			if ($match = $route['route']->matchDispatch($dispatch)) {
+				return $match->url();
+			}
+		}
+		return false;
+	}
+
 	private function callback($callback, Route $route) {
 		if ($callback) {
 			if (!is_callable($callback)) {

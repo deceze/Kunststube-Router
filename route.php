@@ -2,7 +2,8 @@
 
 namespace Kunststube\Routing;
 
-use \InvalidArgumentException;
+use \InvalidArgumentException,
+    \LogicException;
 
 class Route {
 
@@ -20,7 +21,6 @@ class Route {
         }
         if (strlen($pattern) === 0) {
             throw new InvalidArgumentException ('$pattern is empty');
-            
         }
         if ($pattern[0] != '/') {
             throw new InvalidArgumentException("Pattern '$pattern' must start with a /");
@@ -28,6 +28,85 @@ class Route {
  
         $this->initialize($pattern, $dispatch);
     }
+
+    public function matchUrl($url) {
+        $regex = $this->buildRegex();
+        if (!preg_match($regex, $url, $matches)) {
+            return false;
+        }
+        array_shift($matches);
+
+        $route = clone $this;
+        $route->url = $url;
+        $route->mergeNamedMatches($matches);
+        if ($route->lastWildcard) {
+            $route->passedArgs = $route->parsePassedArgs(reset($matches));
+        }
+
+        return $route;
+    }
+
+    public function matchDispatch(array $comparison) {
+        if (array_diff_key($this->dispatch, $comparison)) {
+            return false;
+        }
+
+        $dispatch   = $this->dispatch;
+        $passedArgs = array();
+
+        foreach ($comparison as $key => $value) {
+            if (is_integer($key) && !isset($dispatch[$key])) {
+                if  (!$this->lastWildcard) {
+                    return false;
+                } else {
+                    $passedArgs[] = $value;
+                }
+            } else if (!isset($dispatch[$key]) || !$this->matchPart($dispatch[$key], $value)) {
+                return false;
+            } else {
+                $dispatch[$key]['value'] = $value;
+            }
+        }
+
+        $route = clone $this;
+        $route->dispatch   = $dispatch;
+        $route->passedArgs = $passedArgs;
+        print_r($route);
+        return $route;
+    }
+
+    public function url() {
+        $url = $this->interpolateParts($this->pattern, $this->dispatch);
+        $url = rtrim($url, '/*');
+        if ($this->passedArgs) {
+            $url .= '/' . implode('/', $this->passedArgs);
+        }
+        return $url;
+    }
+
+    public function __get($name) {
+        if (isset($this->dispatch[$name]['value'])) {
+            return $this->dispatch[$name]['value'];
+        }
+        return false;
+    }
+
+    public function passedArgs() {
+        return $this->passedArgs;
+    }
+
+    public function passedArg($name) {
+        return isset($this->passedArgs[$name]) ? $this->passedArgs[$name] : false;
+    }
+
+    public function matchedUrl() {
+        return $this->url;
+    }
+
+    public function pattern() {
+        return $this->pattern;
+    }
+
 
     private function initialize($pattern, array $dispatch) {
         $parts = explode('/', trim($pattern, '/'));
@@ -54,20 +133,16 @@ class Route {
     }
 
     private function parsePart($part) {
-        if (preg_match('/^:(?<name>\w+)$/', $part, $match)) {
-            // simple named part (/:foo/)
-            return array($match['name'] => '[^\/]+');
-        }
-        if (!preg_match('/^\[(?<pattern>.+?)(:(?<name>\w+))?\]$/', $part, $matches)) {
+        if (!preg_match('/^(?<pattern>.+?)?:(?<name>\w+)$/', $part, $matches)) {
             // literal pattern (/foo/)
             return array(preg_quote($part, '/'));
         }
-        if (isset($matches['name'])) {
-            // regex named part (/[.+:foo]/)
-            return array($matches['name'] => $matches['pattern']);
+        if (!isset($matches['pattern'])) {
+            // simple named part (/:foo/)
+            $matches['pattern'] = '[^\/]+';
         }
-        // regex part (/[.+]/)
-        return array($matches['pattern']);
+        // named regex part (/.+:foo/)
+        return array($matches['name'] => $matches['pattern']);
     }
 
     private function partsToRegex(array $parts) {
@@ -100,52 +175,49 @@ class Route {
         return sprintf('/^%s%s$/', $this->regex, $this->lastWildcard ? '(.*)' : null);
     }
 
-    public function matchUrl($url) {
-        $regex = $this->buildRegex();
-        if (!preg_match($regex, $url, $matches)) {
-            return false;
-        }
-
-        $route = clone $this;
-        $route->url = $url;
-        
-        unset($matches[0]);
-        $i = 1;
+    private function mergeNamedMatches(array &$matches) {
+        $i = 0;
         foreach ($matches as $key => $value) {
             if (!is_string($key)) {
                 continue;
             }
-            $route->dispatch[$key]['value'] = $value;
+            $this->dispatch[$key]['value'] = $value;
             unset($matches[$key], $matches[$i++]);
         }
+    }
 
-        if ($this->lastWildcard) {
-            $passedArgs = reset($matches);
-            $passedArgs = trim($passedArgs, '/');
-            $passedArgs = explode('/', $passedArgs);
-            $route->passedArgs = $passedArgs;
+    private function parsePassedArgs($args) {
+        $args = trim($args, '/');
+        $args = explode('/', $args);
+
+        $passedArgs = array();
+        foreach ($args as $arg) {
+            $arg = explode(':', $arg, 2);
+            if (isset($arg[1])) {
+                $passedArgs[$arg[0]] = $arg[1];
+            } else {
+                $passedArgs[] = $arg[0];
+            }
         }
 
-        return $route;
+        return $passedArgs;
     }
 
-    public function __get($name) {
-        if (isset($this->dispatch[$name]['value'])) {
-            return $this->dispatch[$name]['value'];
+    private function matchPart(array $part, $value) {
+        if (!$part['regex']) {
+            return $part['value'] === $value;
+        } else {
+            return preg_match("/^$part[regex]$/", $value);
         }
-        return false;
     }
 
-    public function passedArgs() {
-        return $this->passedArgs();
-    }
-
-    public function url() {
-        return $this->url;
-    }
-
-    public function pattern() {
-        return $this->pattern;
+    private function interpolateParts($pattern, array $dispatch) {
+        return preg_replace_callback('!(?<=/)[^/]*:(\w+)(?=/|$)!', function ($m) use ($pattern, $dispatch) {
+            if (!isset($dispatch[$m[1]])) {
+                throw new LogicException("Pattern '$pattern' does not contain placeholder for $m[1]");
+            }
+            return $dispatch[$m[1]]['value'];
+        }, $pattern);
     }
 
 }
