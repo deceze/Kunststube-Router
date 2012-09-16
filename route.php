@@ -55,14 +55,16 @@ class Route {
         $passedArgs = array();
 
         foreach ($comparison as $key => $value) {
-            if (is_integer($key) && !isset($dispatch[$key])) {
-                if  (!$this->lastWildcard) {
-                    return false;
+            if (isset($dispatch[$key])) {
+                if ($this->matchPart($dispatch[$key], $value)) {
+                    $dispatch[$key]['value'] = $value;
                 } else {
-                    $passedArgs[] = $value;
+                    return false;
                 }
-            } else if (!isset($dispatch[$key]) || !$this->matchPart($dispatch[$key], $value)) {
+            } else if (!$this->lastWildcard) {
                 return false;
+            } else if (is_numeric($key)) {
+                $passedArgs[] = $value;
             } else {
                 $dispatch[$key]['value'] = $value;
             }
@@ -76,11 +78,20 @@ class Route {
     }
 
     public function url() {
-        $url = $this->interpolateParts($this->pattern, $this->dispatch);
+        $dispatch = $this->dispatch;
+        $url = $this->interpolateParts($this->pattern, $dispatch);
         $url = rtrim($url, '/*');
-        if ($this->passedArgs) {
-            $url .= '/' . implode('/', $this->passedArgs);
+
+        $args = $this->passedArgs;
+        foreach ($dispatch as $key => $value) {
+            if (is_string($key) && !array_key_exists('regex', $value)) {
+                $args[] = "$key:$value[value]";
+            }
         }
+        if ($args) {
+            $url .= '/' . implode('/', $args);
+        }
+
         return $url;
     }
 
@@ -211,12 +222,14 @@ class Route {
         }
     }
 
-    private function interpolateParts($pattern, array $dispatch) {
-        return preg_replace_callback('!(?<=/)[^/]*:(\w+)(?=/|$)!', function ($m) use ($pattern, $dispatch) {
+    private function interpolateParts($pattern, array &$dispatch) {
+        return preg_replace_callback('!(?<=/)[^/]*:(\w+)(?=/|$)!', function ($m) use ($pattern, &$dispatch) {
             if (!isset($dispatch[$m[1]])) {
                 throw new LogicException("Pattern '$pattern' does not contain placeholder for $m[1]");
             }
-            return $dispatch[$m[1]]['value'];
+            $value = $dispatch[$m[1]]['value'];
+            unset($dispatch[$m[1]]);
+            return $value;
         }, $pattern);
     }
 
