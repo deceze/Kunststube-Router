@@ -56,12 +56,7 @@ class Route {
      * @return Route A copy of the route object with the matches populated, or false on non-match.
      */
     public function matchUrl($url) {
-        static $regex = null;
-        if (!$regex) {
-            $regex = $this->buildRegex();
-        }
-
-        if (!preg_match($regex, $url, $matches)) {
+        if (!preg_match($this->buildRegex(), $url, $matches)) {
             return false;
         }
         

@@ -43,7 +43,7 @@ class Router {
 	 * @throws InvalidArgumentException if $callback is not callable
 	 */
 	public function addRoute(Route $route, $callback = null) {
-		if ($callback && !is_callable($callback)) {
+		if ($callback && !is_callable($callback, true)) {
 			throw new InvalidArgumentException('$callback must be of type callable, got ' . gettype($callback));
 		}
 		$this->routes[] = compact('route', 'callback');
@@ -56,7 +56,7 @@ class Router {
 	 * @throws InvalidArgumentException if $callback is not callable
 	 */
 	public function defaultCallback($callback) {
-		if ($callback && !is_callable($callback)) {
+		if ($callback && !is_callable($callback, true)) {
 			throw new InvalidArgumentException('$callback must be of type callable, got ' . gettype($callback));
 		}
 		$this->defaultCallback = $callback;
@@ -72,7 +72,7 @@ class Router {
 	 * @throws RuntimeException in case no route matched and no callback was supplied.
 	 */
 	public function route($url, $noMatch = null) {
-		if ($noMatch && !is_callable($noMatch)) {
+		if ($noMatch && !is_callable($noMatch, true)) {
 			throw new InvalidArgumentException('$noMatch must be of type callable, got ' . gettype($noMatch));
 		}
 
@@ -109,7 +109,7 @@ class Router {
 	 */
 	private function callback($callback, Route $route) {
 		if ($callback) {
-			if (!is_callable($callback)) {
+			if (!is_callable($callback, true)) {
 				throw new InvalidArgumentException('$callback must be of type callable, got ' . gettype($callback));
 			}
 			return call_user_func($callback, $route);
