@@ -17,6 +17,24 @@ class Route {
     private $regex,
             $parts = array();
 
+    /**
+     * @param string $pattern The pattern for the route.
+     *  Consists of parts separated by forward slashes.
+     *  Three types of parts are supported:
+     *      - literal:     /foo/
+     *      - named:       /:foo/
+     *      - named regex: /\d+:foo/
+     *
+     *  The final part may be a '*' to allow for trailing wildcard arguments.
+     *
+     *  Example: /foo/:bar/\d+:baz/*
+     *
+     * @param array $dispatch Default values for the dispatcher.
+     *  If empty the $pattern must contain at least one named part,
+     *  otherwise the route is pointless and will throw an exception.
+     *
+     * @throws InvalidArgumentException
+     */
     public function __construct($pattern, array $dispatch = array()) {
         if (!is_string($pattern)) {
             throw new InvalidArgumentException('$pattern must be a string, got ' . gettype($pattern));
@@ -31,6 +49,12 @@ class Route {
         $this->initialize($pattern, $dispatch);
     }
 
+    /**
+     * Tries to match a URL to the route's pattern.
+     *
+     * @param string $url The URL to match.
+     * @return Route A copy of the route object with the matches populated, or false on non-match.
+     */
     public function matchUrl($url) {
         static $regex = null;
         if (!$regex) {
@@ -53,6 +77,15 @@ class Route {
         return $route;
     }
 
+    /**
+     * Tries a reverse match of dispatcher information to route.
+     * The route matches if all elements of the original $dispatch array match
+     * in addition to all named parts of the pattern.
+     * Any additional elements will only match if the route allows wildcard arguments.
+     *
+     * @param array $comparison The dispatch array to match.
+     * @return Route A copy of the route object with the matches populated, or false on non-match.
+     */
     public function matchDispatch(array $comparison) {
         if (array_diff_key($this->dispatch, $comparison)) {
             return false;
@@ -87,6 +120,11 @@ class Route {
         return $route;
     }
 
+    /**
+     * Formats a matched route into a URL.
+     *
+     * @return string A URL representing the route with current matched values.
+     */
     public function url() {
         $dispatch = $this->dispatch;
         $url = $this->interpolateParts($this->pattern, $dispatch);
@@ -107,27 +145,56 @@ class Route {
         return $url;
     }
 
+    /**
+     * Access any named dispatch values directly as properties.
+     *
+     * @return mixed The requested value or null if it does not exist.
+     */
     public function __get($name) {
-        return isset($this->dispatch[$name]) ? $this->dispatch[$name] : false;
+        return isset($this->dispatch[$name]) ? $this->dispatch[$name] : null;
     }
 
+    /**
+     * Returns an array of matched wildcard arguments.
+     *
+     * @return array
+     */
     public function wildcardArgs() {
         return $this->wildcardArgs;
     }
 
+    /**
+     * Access a matched wildcard arg directly by name or index.
+     *
+     * @param mixed $name Name of the named argument or index of unnamed argument.
+     * @return mixed The value or null if no such argument exists.
+     */
     public function wildcardArg($name) {
         return isset($this->wildcardArgs[$name]) ? $this->wildcardArgs[$name] : false;
     }
 
+    /**
+     * Returns the matched URL if any.
+     *
+     * @return mixed The URL or null if non matched yet.
+     */
     public function matchedUrl() {
         return $this->url;
     }
 
+    /**
+     * Returns the original pattern.
+     *
+     * @return string
+     */
     public function pattern() {
         return $this->pattern;
     }
 
 
+    /**
+     * Initializes the object.
+     */
     private function initialize($pattern, array $dispatch) {
         $parts = explode('/', trim($pattern, '/'));
         $parts = $this->parseWildcard($parts);
@@ -140,6 +207,13 @@ class Route {
         $this->dispatch = $this->partsToDispatch($parts, $dispatch);
     }
 
+    /**
+     * Sets the wildcard flag based on the parts and returns
+     * the parts array without wildcard part of it was found.
+     *
+     * @param array $parts
+     * @return array Modified $parts array.
+     */
     private function parseWildcard(array $parts) {
         $lastIndex = count($parts) - 1;
         if ($parts[$lastIndex] === '*') {
@@ -149,6 +223,13 @@ class Route {
         return $parts;
     }
 
+    /**
+     * Parses a part into an array containing the name and regex pattern.
+     *
+     * @param string $part A single part without leading or trailing slash.
+     * @return array Array of the format array(name => regex).
+     *  Name is numeric for unnamed literal patterns.
+     */
     private function parsePart($part) {
         if (!preg_match('/^(?<pattern>.+?)?:(?<name>\w+)$/', $part, $match)) {
             // literal pattern (/foo/)
@@ -162,6 +243,13 @@ class Route {
         return array($match['name'] => $match['pattern']);
     }
 
+    /**
+     * Turns an array of parts into a regular expression.
+     *
+     * @param array $parts
+     * @return string Regular expression for all parts, without delimiters.
+     *  Items are escaped expecting / as delimiters to be added later.
+     */
     private function partsToRegex(array $parts) {
         foreach ($parts as $key => &$value) {
             if (is_string($key)) {
@@ -171,6 +259,16 @@ class Route {
         return '\/' . join('\/', $parts);
     }
 
+    /**
+     * Adds named parts to dispatch array with null values.
+     * Validates that the pattern and dispatch array together form a valid route.
+     *
+     * @param array $parts
+     * @param array $dispatch
+     * @return array Modified $dispatch array.
+     * @throws InvalidArgumentException if route is invalid due to duplicate keys in pattern and dispatch,
+     *  or if both the pattern and dispatch information contain no named parameters.
+     */
     private function partsToDispatch(array $parts, array $dispatch) {
         foreach ($parts as $key => $regex) {
             if (is_string($key)) {
@@ -188,10 +286,21 @@ class Route {
         return $dispatch;
     }
 
+    /**
+     * Builds a complete regex that will match a valid URL.
+     *
+     * @return string
+     */
     private function buildRegex() {
         return sprintf('/^%s%s$/', $this->regex, $this->wildcard ? '(.*)' : null);
     }
 
+    /**
+     * Merges named values matched from a URL into the dispatch array.
+     * Modifies the matches in place to remove processed items, leaving unprocessed wildcard args.
+     *
+     * @param array &$matches
+     */
     private function mergeNamedMatches(array &$matches) {
         $i = 0;
         foreach ($matches as $key => $value) {
@@ -206,6 +315,12 @@ class Route {
         }
     }
 
+    /**
+     * Parses a wildcard argument string into named arguments.
+     *
+     * @param string $args Example: foo/bar:baz/42
+     * @return array The $args string parsed into a key => value array.
+     */
     private function parseWildcardArgs($args) {
         if ($args === '') {
             return array();
@@ -227,6 +342,14 @@ class Route {
         return $wildcardArgs;
     }
 
+    /**
+     * Interpolates dispatch values into a pattern, replacing named parts in the pattern with values.
+     * Modifies the dispatch array in place, removing processed items, leaving over items not in the pattern.
+     *
+     * @param string $pattern
+     * @param array &$dispatch
+     * @return string Interpolated pattern, forming a URL
+     */
     private function interpolateParts($pattern, array &$dispatch) {
         return preg_replace_callback('!(?<=/)[^/]*:(\w+)(?=/|$)!', function ($m) use ($pattern, &$dispatch) {
             if (!isset($dispatch[$m[1]])) {
