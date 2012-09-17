@@ -48,4 +48,19 @@ class RouterTest extends PHPUnit_Framework_TestCase {
 		$this->assertTrue($called);
 	}
 
+	public function testFailingRegexParameterRouting() {
+		$routeMock = $this->getMock('stdClass', array('callback'));
+  		$routeMock->expects($this->never())->method('callback');
+
+		$noMatchMock = $this->getMock('stdClass', array('callback'));
+  		$noMatchMock->expects($this->exactly(3))->method('callback');
+
+		$r = new Router;
+		$r->add('/\d+:id/\w{3}:lang/\w+_controller:controller', array(), array($routeMock, 'callback'));
+		
+		$r->route('/42/engl/foo_controller',   array($noMatchMock, 'callback'));
+		$r->route('/a42/eng/foo_controller',   array($noMatchMock, 'callback'));
+		$r->route('/42/eng/foo%20_controller', array($noMatchMock, 'callback'));
+	}
+
 }
