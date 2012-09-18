@@ -57,11 +57,11 @@ The first and defining argument for a route is the pattern. The pattern is match
 - literals: `/foo`
 - named parameters: `/:bar`
 - named parameters with regular expression: `/\d+:baz`
-- a trailing wildcard: `/*`
+- a trailing wild card: `/*`
 
-If a parameter of the pattern contains a `:`, it is a named parameter and will be captured as dispatcher information (see below). The name is specified after the `:`. Preceeding the `:` may be a regular expression. A named parameter without regular expression is basically just shorthand for a parameter with regular expression that matches anything; i.e. `/:foo` is shorthand for `/[^/]+:foo`.
+If a parameter of the pattern contains a `:`, it is a named parameter and will be captured as dispatcher information (see below). The name is specified after the `:`. Preceding the `:` may be a regular expression. A named parameter without regular expression is basically just shorthand for a parameter with regular expression that matches anything; i.e. `/:foo` is shorthand for `/[^/]+:foo`.
 
-The very last parameter may be a `*`. This will match anything and allows you to specify only the initial part of the URL. Without the wildcard, the pattern will only match URLs of identical length. For example:
+The very last parameter may be a `*`. This will match anything and allows you to specify only the initial part of the URL. Without the wild card, the pattern will only match URLs of identical length. For example:
 
 - `/foo/:bar` will *not* match the URL `/foo/bar/baz`
 - `/foo/:bar/*` *will* match the URL `/foo/bar/baz`
@@ -112,21 +112,21 @@ Any named parameters from the pattern are passed to the dispatcher (`action` and
 
 `$route` is the matched route object passed from the router. The above dispatcher loads the file `FoosController.php`, instantiates a new `FoosController` class, then calls the method `->view(42)` on it. This shows a pretty simple way to load and execute any method of the `FoosController` with a numeric argument when any URL `/foo/(action)/(id)` is being requested.
 
-Note: nothing is stopping you from defining routes without any parameters in either the pattern or the dispatcher array, resulting in empty dispatcher information. This can be useful for hardcoding certain callbacks to certain routes, though should be avoided for more complex routing/dispatching scenarios.
+Note: nothing is stopping you from defining routes without any parameters in either the pattern or the dispatcher array, resulting in empty dispatcher information. This can be useful for hard-coding certain callbacks to certain routes, though should be avoided for more complex routing/dispatching scenarios.
 
 
 Reverse Routing
 ---------------
 
-The above example shows how to route from a URL to a specific class method in a specific file. You typically want to output links in your app somewhere that will lead to this file/class/method again. You could do so by hardcoding all your links:
+The above example shows how to route from a URL to a specific class method in a specific file. You typically want to output links in your app somewhere that will lead to this file/class/method again. You could do so by hard-coding all your links:
 
     <a href="/foo/view/42">See foo number 42</a>
 
-This makes your URL structure rather inflexible though. You may eventually decide to shorten those URLs to `/foos/42`, because that looks better. It's pretty easy to change the routing the accomodate that:
+This makes your URL structure rather inflexible though. You may eventually decide to shorten those URLs to `/foos/42`, because that looks better. It's pretty easy to change the routing the accommodate that:
 
     $r->add('/foo/\d+:id', array('controller' => 'foos', 'action' => 'view'));
 
-The above route will route the URL `/foo/42` to the same `'controller' => 'foos', 'action' => 'view', 'id' => 42`. Your page will still have the hardcoded URL `/foo/view/42` all over the place though. To solve this and keep your URL structure flexible, use reverse routing, which takes canonical dispatcher information and turns it back into URLs:
+The above route will route the URL `/foo/42` to the same `'controller' => 'foos', 'action' => 'view', 'id' => 42`. Your page will still have the hard-coded URL `/foo/view/42` all over the place though. To solve this and keep your URL structure flexible, use reverse routing, which takes canonical dispatcher information and turns it back into URLs:
 
     $url = $r->reverseRoute(array('controller' => 'foos', 'action' => 'view', 'id' => 42));
     printf('<a href="%s">Soo foo number 42</a>', $url);
@@ -159,21 +159,21 @@ When reverse routing, regular expressions in the pattern are evaluated against t
 In the above example, the first route does not reverse match `array('controller' => 'foo', 'action' => 'bar', 'id' => 'baz')`, since `id` is defined as `\d+`, which does not match `'baz'`. The second route matches though.
 
 
-Wildcard Arguments
-------------------
+Wild-card Arguments
+-------------------
 
-If a routing pattern is defined with a trailing `*`, it allows wildcard arguments, as explained above. These arguments can be either named or unnamed. For example:
+If a routing pattern is defined with a trailing `*`, it allows wild-card arguments, as explained above. These arguments can be either named or unnamed. For example:
 
     $r->addRoute('/foo/*', array('controller' => 'foos'));
     $r->route('/foo/bar/baz:42')
 
-The resulting dispatcher information will be simply `'controller' => 'foos'`, since no other parameters are specified in the route. The wildcard arguments the dispatcher receives will be `'bar', 'baz' => 42`, or technically `array(0 => 'bar', 'baz' => 42)`. In other words, values passed in `name:value` notation are broken apart and treated as associative key-value pairs.
+The resulting dispatcher information will be simply `'controller' => 'foos'`, since no other parameters are specified in the route. The wild-card arguments the dispatcher receives will be `'bar', 'baz' => 42`, or technically `array(0 => 'bar', 'baz' => 42)`. In other words, values passed in `name:value` notation are broken apart and treated as associative key-value pairs.
 
-You should avoid naming conflicts between named parameters and wildcard arguments. Accessing values through `$route->name` always prefers the dispatch information; if an identically named wildcard argument was also set, you have to access it through `$route->wildcardArg('name')`.
+You should avoid naming conflicts between named parameters and wild-card arguments. Accessing values through `$route->name` always prefers the dispatch information; if an identically named wild-card argument was also set, you have to access it through `$route->wildcardArg('name')`.
 
-When reverse routing, given dispatcher information that contains wildcard arguments, a route will only match if it allows wildcard arguments.
+When reverse routing, given dispatcher information that contains wild-card arguments, a route will only match if it allows wild-card arguments.
 
-When reverse routing there is no distinction between dispatch information and wildcard arguments, they're all specified in one array. In other words, it is not possible to reverse route with conflicting dispatch/wildcard parameters. Avoid using the same names for two different purposes.
+When reverse routing there is no distinction between dispatch information and wild-card arguments, they're all specified in one array. In other words, it is not possible to reverse route with conflicting dispatch/wild-card parameters. Avoid using the same names for two different purposes.
 
     $r->add('/foo',       array('controller' => 'foos', 'action' => 'index'));
     $r->add('/foo/bar/*', array('controller' => 'foos', 'action' => 'index'));
@@ -184,7 +184,7 @@ When reverse routing there is no distinction between dispatch information and wi
     $r->reverseRoute(array('controller' => 'foos', 'action' => 'index', 'baz' => '42'));
     // /foo/bar/baz:42
 
-Both routes above have the same dispatcher information for `'controller' => 'foos', 'action' => 'index'`, but only one of them allows wildcard arguments. When reverse routing `array('controller' => 'foos', 'action' => 'index')`, the first route matches and `/foo` is returned. When reverse routing with an additional argument `'baz' => 42`, the first route does not match, but the second does.
+Both routes above have the same dispatcher information for `'controller' => 'foos', 'action' => 'index'`, but only one of them allows wild-card arguments. When reverse routing `array('controller' => 'foos', 'action' => 'index')`, the first route matches and `/foo` is returned. When reverse routing with an additional argument `'baz' => 42`, the first route does not match, but the second does.
 
 
 Dispatching
@@ -209,7 +209,7 @@ Redirects are easy to implement:
         exit;
     });
 
-You can chain your dispatchers with pre-processing logic:
+You can chain your dispatchers with preprocessing logic:
 
     function dispatch($controller, $action) {
         require "$controller.php";
@@ -317,7 +317,7 @@ This creates a new `Route` object (what is usually done behind the scenes when y
     $r = new Route('/foo/\d+:id');
     $r->id = 'bar';  // invalid value for pattern \d+
 
-Wildcard arguments are supported the same way, but only if the route supports wildcard arguments.
+Wild-card arguments are supported the same way, but only if the route supports wild-card arguments.
 
 This is mainly useful as efficient way to generate a URL for similar routes. Using `Router::reverseRoute`, all routes must be evaluated in order to find the matching route to generate the correct URL. If you already know the pattern of the URL though and just need to change a single value or two to regenerate the URL, doing so on the correct `Route` object is more efficient:
 
@@ -329,5 +329,21 @@ This is mainly useful as efficient way to generate a URL for similar routes. Usi
     });
     $r->route('/item/42');  // Now visiting item 42. The next item is at /item/43
 
-Use this feature with care, since explictly *not* all defined routes are being evaluated and you may get results different from when you'd use reverse routing.
+Use this feature with care, since explicitly *not* all defined routes are being evaluated and you may get results different from when you'd use reverse routing.
 
+
+Information
+-----------
+
+Version: Initial 0.slapped-it-together-on-a-slow-Sunday-and-did-some-general-testing
+Author:  David Zentgraf
+Contact: router@kunststube.net
+Web:     http://kunststube.net
+         https://github.com/deceze
+
+
+Disclaimer
+----------
+
+The code is provided as is. Feel free to use it for anything you like. No warranty about anything.
+Currently just putting it out there, proper license may be applied in the future.
