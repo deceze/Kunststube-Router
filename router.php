@@ -107,7 +107,7 @@ class Router {
 	/**
 	 * Executes a callback or the default callback for a matched route.
 	 */
-	private function callback($callback, Route $route) {
+	protected function callback($callback, Route $route) {
 		if ($callback) {
 			if (!is_callable($callback, true)) {
 				throw new InvalidArgumentException('$callback must be of type callable, got ' . gettype($callback));

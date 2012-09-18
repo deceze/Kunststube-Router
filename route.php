@@ -9,13 +9,12 @@ class Route {
 
 	protected $pattern,
               $dispatch = array(),
-              $wildcard = false;
+              $wildcard = false,
+              $parts    = array(),
+              $regex;
 
     protected $url,
               $wildcardArgs = array();
-
-    private $regex,
-            $parts = array();
 
     /**
      * @param string $pattern The pattern for the route.
@@ -190,7 +189,7 @@ class Route {
     /**
      * Initializes the object.
      */
-    private function initialize($pattern, array $dispatch) {
+    protected function initialize($pattern, array $dispatch) {
         $parts = explode('/', trim($pattern, '/'));
         $parts = $this->parseWildcard($parts);
         $parts = array_map(array($this, 'parsePart'), $parts);
@@ -209,7 +208,7 @@ class Route {
      * @param array $parts
      * @return array Modified $parts array.
      */
-    private function parseWildcard(array $parts) {
+    protected function parseWildcard(array $parts) {
         $lastIndex = count($parts) - 1;
         if ($parts[$lastIndex] === '*') {
             $this->wildcard = true;
@@ -225,7 +224,7 @@ class Route {
      * @return array Array of the format array(name => regex).
      *  Name is numeric for unnamed literal patterns.
      */
-    private function parsePart($part) {
+    protected function parsePart($part) {
         if (!preg_match('/^(?<pattern>.+?)?:(?<name>\w+)$/', $part, $match)) {
             // literal pattern (/foo/)
             return array(preg_quote($part, '/'));
@@ -245,7 +244,7 @@ class Route {
      * @return string Regular expression for all parts, without delimiters.
      *  Items are escaped expecting / as delimiters to be added later.
      */
-    private function partsToRegex(array $parts) {
+    protected function partsToRegex(array $parts) {
         foreach ($parts as $key => &$value) {
             if (is_string($key)) {
                 $value = "(?<$key>$value)";
@@ -264,7 +263,7 @@ class Route {
      * @throws InvalidArgumentException if route is invalid due to duplicate keys in pattern and dispatch,
      *  or if both the pattern and dispatch information contain no named parameters.
      */
-    private function partsToDispatch(array $parts, array $dispatch) {
+    protected function partsToDispatch(array $parts, array $dispatch) {
         foreach ($parts as $key => $regex) {
             if (is_string($key)) {
                 if (isset($dispatch[$key])) {
@@ -286,7 +285,7 @@ class Route {
      *
      * @return string
      */
-    private function buildRegex() {
+    protected function buildRegex() {
         return sprintf('/^%s%s$/', $this->regex, $this->wildcard ? '(.*)' : null);
     }
 
@@ -296,7 +295,7 @@ class Route {
      *
      * @param array &$matches
      */
-    private function mergeNamedMatches(array &$matches) {
+    protected function mergeNamedMatches(array &$matches) {
         $i = 0;
         foreach ($matches as $key => $value) {
             if (!is_string($key)) {
@@ -316,7 +315,7 @@ class Route {
      * @param string $args Example: foo/bar:baz/42
      * @return array The $args string parsed into a key => value array.
      */
-    private function parseWildcardArgs($args) {
+    protected function parseWildcardArgs($args) {
         if ($args === '') {
             return array();
         }
@@ -345,7 +344,7 @@ class Route {
      * @param array &$dispatch
      * @return string Interpolated pattern, forming a URL
      */
-    private function interpolateParts($pattern, array &$dispatch) {
+    protected function interpolateParts($pattern, array &$dispatch) {
         return preg_replace_callback('!(?<=/)[^/]*:(\w+)(?=/|$)!', function ($m) use ($pattern, &$dispatch) {
             if (!isset($dispatch[$m[1]])) {
                 throw new LogicException("Pattern '$pattern' does not contain placeholder for $m[1]");
