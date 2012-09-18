@@ -1,9 +1,10 @@
 <?php
 
-use Kunststube\Routing\Router,
-	Kunststube\Routing\Route;
+use Kunststube\Router\Router,
+	Kunststube\Router\Route;
 
-require_once dirname(__DIR__) . '/router.php';
+require_once 'Kunststube/Router/Router.php';
+
 
 class RouterTest extends PHPUnit_Framework_TestCase {
 

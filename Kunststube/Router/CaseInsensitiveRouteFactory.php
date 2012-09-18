@@ -1,9 +1,10 @@
 <?php
 
-namespace Kunststube\Routing;
+namespace Kunststube\Router;
 
-require_once 'route_factory.php';
-require_once 'case_insensitive_route.php';
+require_once 'Kunststube/Router/RouteFactory.php';
+require_once 'Kunststube/Router/CaseInsensitiveRoute.php';
+
 
 class CaseInsensitiveRouteFactory extends RouteFactory {
 

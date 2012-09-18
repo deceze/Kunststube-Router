@@ -1,9 +1,10 @@
 <?php
 
-namespace Kunststube\Routing;
+namespace Kunststube\Router;
 
 use \InvalidArgumentException,
     \LogicException;
+
 
 class Route {
 

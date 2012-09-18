@@ -1,8 +1,9 @@
 <?php
 
-namespace Kunststube\Routing;
+namespace Kunststube\Router;
 
-require_once 'route.php';
+require_once 'Kunststube/Router/Route.php';
+
 
 class CaseInsensitiveRoute extends Route {
 

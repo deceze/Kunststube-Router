@@ -18,9 +18,9 @@ Kunststube\Router deals with the first two only. It allows you to specify rules 
 Usage example
 -------------
 
-    use Kunststube\Routing\Router;
+    use Kunststube\Router\Router;
 
-    require_once 'router.php';
+    require_once 'Kunststube/Router/Router.php';
 
     $r = new Router;
 
@@ -33,7 +33,7 @@ Usage example
     $r->add('/:controller/:action/*');
 
     $r->defaultCallback(function (Route $route) {
-        require_once 'dispatcher.php';
+        require_once 'MyDispatcher.php';
         $dispatcher = new Dispatcher;
         $dispatcher->dispatch($route);
     });
@@ -104,7 +104,7 @@ Any named parameters from the pattern are passed to the dispatcher (`action` and
     function (Route $route) {
         $className = ucfirst($route->controller) . 'Controller';
         
-        require_once "controllers/$className.php";
+        require_once "MyControllers/$className.php";
 
         $controller = new $className;
         $controller->{$route->action}($route->id);
@@ -275,7 +275,7 @@ Extensions
 
 You can modify and extend the behavior of Kunststube\Router. The most interesting is probably to pass a custom `RouteFactory` to the `Router` constructor. Here an example using a `CaseInsensitiveRoute`:
 
-    require_once 'case_insensitive_route_factory.php';
+    require_once 'Kunststube/Router/CaseInsensitiveRouteFactory.php';
 
     $r = new Router(new CaseInsensitiveRouteFactory);
 
@@ -283,7 +283,7 @@ The bulk of the routing logic resides in the `Route` objects. They are the ones 
 
 If you do not want all your routes to be case insensitive but only some, you can create a `CaseInsensitiveRoute` yourself and add it to the routing chain:
 
-    require_once 'case_insensitive_route.php';
+    require_once 'Kunststube/Router/CaseInsensitiveRoute.php';
 
     $r = new Router;
     $r->add('/regular/case/sensitive/route');

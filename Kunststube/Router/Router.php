@@ -1,6 +1,6 @@
 <?php
 
-namespace Kunststube\Routing;
+namespace Kunststube\Router;
 
 use \InvalidArgumentException,
 	\RuntimeException;
@@ -18,7 +18,7 @@ class Router {
 	 */
 	public function __construct(RouteFactory $routeFactory = null) {
 		if (!$routeFactory) {
-			require_once 'route_factory.php';
+			require_once 'Kunststube/Router/RouteFactory.php';
 			$routeFactory = new RouteFactory;
 		}
 		$this->routeFactory = $routeFactory;

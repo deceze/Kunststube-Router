@@ -1,14 +1,15 @@
 <?php
 
-use Kunststube\Routing\Route;
+use Kunststube\Router\Route;
 
-require_once dirname(__DIR__) . '/route.php';
+require_once 'Kunststube/Router/Route.php';
+
 
 class RouteTest extends PHPUnit_Framework_TestCase {
 
     public function testConstruction() {
     	$r = new Route('/foo/:bar/\d+:baz', array('foo' => 'bar'));
-    	$this->assertInstanceOf('Kunststube\Routing\Route', $r);
+    	$this->assertInstanceOf('Kunststube\Router\Route', $r);
     }
 
     /**
@@ -19,7 +20,7 @@ class RouteTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testRouteWithoutNames() {
-    	$this->assertInstanceOf('Kunststube\Routing\Route', new Route('/foo/bar'));
+    	$this->assertInstanceOf('Kunststube\Router\Route', new Route('/foo/bar'));
     }
 
     public function testSettingRouteValues() {

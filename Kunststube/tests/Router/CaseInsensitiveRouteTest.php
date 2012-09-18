@@ -1,12 +1,13 @@
 <?php
 
-use Kunststube\Routing\Router,
-	Kunststube\Routing\CaseInsensitiveRoute,
-	Kunststube\Routing\CaseInsensitiveRouteFactory;
+use Kunststube\Router\Router,
+	Kunststube\Router\CaseInsensitiveRoute,
+	Kunststube\Router\CaseInsensitiveRouteFactory;
 
-require_once dirname(__DIR__) . '/router.php';
-require_once dirname(__DIR__) . '/case_insensitive_route.php';
-require_once dirname(__DIR__) . '/case_insensitive_route_factory.php';
+require_once 'Kunststube/Router/Router.php';
+require_once 'Kunststube/Router/CaseInsensitiveRoute.php';
+require_once 'Kunststube/Router/CaseInsensitiveRouteFactory.php';
+
 
 class CaseInsensitiveRouteTest extends PHPUnit_Framework_TestCase {
 
