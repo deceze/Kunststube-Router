@@ -86,7 +86,7 @@ class Router {
 			return call_user_func($noMatch, $url);
 		}
 		
-		throw new RuntimeException('No route matched');
+		throw new RuntimeException("No route matched $url");
 	}
 
 	/**

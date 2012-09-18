@@ -18,11 +18,8 @@ class RouteTest extends PHPUnit_Framework_TestCase {
     	new Route('');
     }
 
-    /**
-     * @expectedException InvalidArgumentException
-     */
     public function testRouteWithoutNames() {
-    	new Route('/foo/bar');
+    	$this->assertInstanceOf('Kunststube\Routing\Route', new Route('/foo/bar'));
     }
 
 }

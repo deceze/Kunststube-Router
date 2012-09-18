@@ -102,14 +102,17 @@ Named parameters from the pattern are considered part of the dispatcher informat
 Any named parameters from the pattern are passed to the dispatcher (`action` and `id`). The default dispatcher information defined by the route (`controller => foos`) is merged together with the named parameters. Together they form the canonical dispatcher information for the route (`action`, `id` and `controller => foos`). The canonical dispatcher information should be thought of as the primary "id" of some controller/action in your app. This allows flexible reverse routing. For example, we'll assume a dispatcher like this:
 
     function (Route $route) {
-        require "{$route->controller}_controller.php";
-
         $className = ucfirst($route->controller) . 'Controller';
+        
+        require_once "controllers/$className.php";
+
         $controller = new $className;
         $controller->{$route->action}($route->id);
     }
 
-`$route` is the matched route object passed from the router. The above dispatcher loads the file `foos_controller.php`, instantiates a new `FoosController` class, then calls the method `->view(42)` on it. This shows a pretty simple way to load and execute any method of the `FoosController` with arguments when any URL `/foo/...` is being requested.
+`$route` is the matched route object passed from the router. The above dispatcher loads the file `FoosController.php`, instantiates a new `FoosController` class, then calls the method `->view(42)` on it. This shows a pretty simple way to load and execute any method of the `FoosController` with a numeric argument when any URL `/foo/(action)/(id)` is being requested.
+
+Note: nothing is stopping you from defining routes without any parameters in either the pattern or the dispatcher array, resulting in empty dispatcher information. This can be useful for hardcoding certain callbacks to certain routes, though should be avoided for more complex routing/dispatching scenarios.
 
 
 Reverse Routing
@@ -138,3 +141,156 @@ The `Router::reverseRoute` method takes a canonical dispatcher information array
 
     echo $r->reverseRoute(array('controller' => 'foos', 'action' => 'bar'));
     // /foo/bar
+
+Reverse routing allows you to flexibly tie your controllers and actions (or whatever other paradigm and organizational structure you prefer) to URLs and vice-versa. The canonical dispatcher information is the middle man that uniquely represents the same thing for both sides (hence *canonical*). Your defined routes turn URLs into dispatcher information through *routing* and dispatcher information into URLs through *reverse routing*.
+
+When reverse routing, regular expressions in the pattern are evaluated against the passed dispatcher information:
+
+    $r->add('/\d+:id',     array('controller' => 'foo', 'action' => 'bar'));
+    $r->add('/foo/\w+:id', array('controller' => 'foo', 'action' => 'bar'));
+
+    echo $r->reverseRoute(array('controller' => 'foo', 'action' => 'bar', 'id' => 42));
+    // /42
+
+    echo $r->reverseRoute(array('controller' => 'foo', 'action' => 'bar', 'id' => 'baz'));
+    // /foo/baz
+
+In the above example, the first route does not reverse match `array('controller' => 'foo', 'action' => 'bar', 'id' => 'baz')`, since `id` is defined as `\d+`, which does not match `'baz'`. The second route matches though.
+
+
+Wildcard Arguments
+------------------
+
+If a routing pattern is defined with a trailing `*`, it allows wildcard arguments, as explained above. These arguments can be either named or unnamed. For example:
+
+    $r->addRoute('/foo/*', array('controller' => 'foos'));
+    $r->route('/foo/bar/baz:42')
+
+The resulting dispatcher information will be simply `'controller' => 'foos'`, since no other parameters are specified in the route. The wildcard arguments the dispatcher receives will be `'bar', 'baz' => 42`, or technically `array(0 => 'bar', 'baz' => 42)`. In other words, values passed in `name:value` notation are broken apart and treated as associative key-value pairs.
+
+You should avoid naming conflicts between named parameters and wildcard arguments. Accessing values through `$route->name` always prefers the dispatch information; if an identically named wildcard argument was also set, you have to access it through `$route->wildcardArg('name')`.
+
+When reverse routing, given dispatcher information that contains wildcard arguments, a route will only match if it allows wildcard arguments.
+
+When reverse routing there is no distinction between dispatch information and wildcard arguments, they're all specified in one array. In other words, it is not possible to reverse route with conflicting dispatch/wildcard parameters. Avoid using the same names for two different purposes.
+
+    $r->add('/foo',       array('controller' => 'foos', 'action' => 'index'));
+    $r->add('/foo/bar/*', array('controller' => 'foos', 'action' => 'index'));
+
+    $r->reverseRoute(array('controller' => 'foos', 'action' => 'index'));
+    // /foo
+
+    $r->reverseRoute(array('controller' => 'foos', 'action' => 'index', 'baz' => '42'));
+    // /foo/bar/baz:42
+
+Both routes above have the same dispatcher information for `'controller' => 'foos', 'action' => 'index'`, but only one of them allows wildcard arguments. When reverse routing `array('controller' => 'foos', 'action' => 'index')`, the first route matches and `/foo` is returned. When reverse routing with an additional argument `'baz' => 42`, the first route does not match, but the second does.
+
+
+Dispatching
+-----------
+
+Kunststube\Router does not dispatch, this is entirely up to you to add. Kunststube\Router enables you to specify a callback that will be executed for a matched route. Callbacks can be implemented in any syntax supported by PHP as callable type, including object methods and anonymous functions. A callback could go straight to a controller action, if you wanted it to. Or it could load a separate dispatcher class which implements some logic to load further classes based on the information received through the router. It can also be used to implement redirects.
+
+Couple a static route directly to a class method:
+
+    $r->add('/foo', array(), function () {
+        FooController::execute();
+    });
+
+This could also be written like so:
+
+    $r->add('/foo', array(), 'FooController::execute');
+
+Redirects are easy to implement:
+
+    $r->add('/foo', array(), function () {
+        header('Location: /bar');
+        exit;
+    });
+
+You can chain your dispatchers with pre-processing logic:
+
+    function dispatch($controller, $action) {
+        require "$controller.php";
+        $controller::$action();
+    }
+
+    $r->add('/foo/:action', array(), function (Route $route) {
+        dispatch('bar', $route->action);
+    });
+    $r->add('/:controller/:action', array(), 'dispatch');
+
+The above basically aliases `/bar/...` to `/foo/...`. This is just for demonstrating the flexibility of callbacks; it could also have been written simpler like so:
+
+    $r->add('/foo/:action', array('controller' => 'bar'), 'dispatch');
+    $r->add('/:controller/:action', array(), 'dispatch');
+
+To avoid having to pass the same callback to each of your routes, you can specify a default callback and write the above like so:
+
+    $r->add('/foo/:action', array('controller' => 'bar'));
+    $r->add('/:controller/:action');
+    $r->defaultCallback('dispatch');
+
+
+Route matching
+--------------
+
+Routes are matched in order from the first route defined to the last one. The first route that matches invokes the associated callback (or the default callback) and stops the routing process. It is important to define your routes in the correct order. For example, the second route here will never be matched, since the first route matches everything:
+
+    $r->add('/*');
+    $r->add('/foo');
+
+This is powerful behavior, but also tricky. Generally you should define your specific, narrow routes before the broad catch-all routes.
+
+If no route matched a given URL, a `RuntimeException` is thrown. Alternatively you can pass a callback as second argument to `Router::route`, which will be called in case no URL matched:
+
+    $r->route($_GET['url'], function ($url) {
+        die("404: $url not found");
+    });
+
+No `RuntimeException` will be thrown in this case.
+
+This gives you several different strategies for dealing with non-matches. You can catch the thrown exception:
+
+    try {
+        $r->route($_GET['url']);
+    } catch (RuntimeException $e) {
+        die($e->getMessage());
+    }
+
+This is not recommended, since exceptions are expensive and since a 404 event is not really not an exceptional event, but it may tie in well with your existing error handling strategy.
+
+It is usually better to pass a callback to `route()` as shown above. Lastly you can also define a catch-all route as your last route and deal with it:
+
+    // define regular routes here...
+
+    $r->add('/*', array(), 'ErrorHandler::handle404');
+    $r->route($_GET['url']);
+
+A catch-all route has the advantage that the URL will be parsed and your callback receives a regular `Route` object. This is not the case for callbacks passed to `route()`, which will only receive the non-matched URL as string.
+
+
+Extensions
+----------
+
+You can modify and extend the behavior of Kunststube\Router. The most interesting is probably to pass a custom `RouteFactory` to the `Router` constructor. Here an example using a `CaseInsensitiveRoute`:
+
+    require_once 'case_insensitive_route_factory.php';
+
+    $r = new Router(new CaseInsensitiveRouteFactory);
+
+The bulk of the routing logic resides in the `Route` objects. They are the onces parsing the URLs and matching them both ways. If not otherwise specified, the `Router` uses the `RouteFactory` to create new `Route` objects when you call `$r->add(...)`. The default `Route` objects are strictly case sensitive in their matching. An extension of the `Route` class called `CaseInsensitiveRoute` matches URLs and patterns even if their case is different.
+
+If you do not want all your routes to be case insensitive but only some, you can create a `CaseInsensitiveRoute` yourself and add it to the routing chain:
+
+    require_once 'case_insensitive_route.php';
+
+    $r = new Router;
+    $r->add('/regular/case/sensitive/route');
+
+    $caseInsensitiveRoute = new CaseInsensitiveRoute('/case/insensitive/route');
+    $r->addRoute($caseInsensitiveRoute, function () {
+        echo 'This will match';
+    });
+
+    $r->route('/Case/INSENSITIVE/rOuTe');

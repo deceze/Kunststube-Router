@@ -72,4 +72,46 @@ class RouterTest extends PHPUnit_Framework_TestCase {
 	    $this->assertEquals('/foo/bar', $r->reverseRoute(array('controller' => 'foos', 'action' => 'bar')));
 	}
 
+	public function testWildcardReverseRouting() {
+		$r = new Router;
+		$r->add('/foo',       array('controller' => 'foo', 'action' => 'index'));
+		$r->add('/foo/bar/*', array('controller' => 'foo', 'action' => 'index'));
+
+		$this->assertEquals('/foo', $r->reverseRoute(array('controller' => 'foo', 'action' => 'index')));
+		$this->assertEquals('/foo/bar/baz:42', $r->reverseRoute(array('controller' => 'foo', 'action' => 'index', 'baz' => 42)));
+	}
+
+	public function testEmptyDispatcherInformation() {
+		$routeMock = $this->getMock('stdClass', array('callback'));
+		$routeMock->expects($this->once())->method('callback');
+
+		$r = new Router;
+		$r->add('/foo', array(), array($routeMock, 'callback'));
+		$r->route('/foo');
+	}
+
+	public function testRoutePriority() {
+		$routeMock = $this->getMock('stdClass', array('callback'));
+		$routeMock->expects($this->exactly(2))->method('callback');
+
+		$noMatchMock = $this->getMock('stdClass', array('callback'));
+		$noMatchMock->expects($this->never())->method('callback');
+
+		$r = new Router;
+		$r->add('/*', array(), array($routeMock, 'callback'));
+		$r->add('/foo', array(), array($noMatchMock, 'callback'));
+		$r->route('/');
+		$r->route('/foo');
+	}
+
+	public function testRegexReverseRouting() {
+		$r = new Router;
+		$r->add('/\d+:id',     array('controller' => 'foo', 'action' => 'bar'));
+		$r->add('/foo/\w+:id', array('controller' => 'foo', 'action' => 'bar'));
+
+		$this->assertEquals('/42', $r->reverseRoute(array('controller' => 'foo', 'action' => 'bar', 'id' => 42)));
+		$this->assertEquals('/foo/baz', $r->reverseRoute(array('controller' => 'foo', 'action' => 'bar', 'id' => 'baz')));
+
+	}
+
 }

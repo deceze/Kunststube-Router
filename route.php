@@ -140,12 +140,33 @@ class Route {
     }
 
     /**
-     * Access any named dispatch values directly as properties.
+     * Access any value directly as property. Will return dispatch values and wildcard arguments.
+     * If identically named dispatch and wildcard arguments exist, only the dispatch values are returned.
+     * To access a wildcard argument with conflicting name, use wildcardArg($name). Better yet: avoid conflicts.
      *
      * @return mixed The requested value or null if it does not exist.
      */
     public function __get($name) {
-        return isset($this->dispatch[$name]) ? $this->dispatch[$name] : null;
+        return $this->dispatchValue($name) ?: $this->wildcardArg($name);
+    }
+
+    /**
+     * Returns the complete dispatch array.
+     *
+     * @return array
+     */
+    public function dispatchValues() {
+        return $this->dispatch;
+    }
+
+    /**
+     * Returns a specific dispatch value.
+     *
+     * @param string $name
+     * @return mixed The value or false if no such value exists.
+     */
+    public function dispatchValue($name) {
+        return isset($this->dispatch[$name]) ? $this->dispatch[$name] : false;
     }
 
     /**
@@ -161,7 +182,7 @@ class Route {
      * Access a matched wildcard arg directly by name or index.
      *
      * @param mixed $name Name of the named argument or index of unnamed argument.
-     * @return mixed The value or null if no such argument exists.
+     * @return mixed The value or false if no such argument exists.
      */
     public function wildcardArg($name) {
         return isset($this->wildcardArgs[$name]) ? $this->wildcardArgs[$name] : false;
@@ -193,7 +214,9 @@ class Route {
         $parts = explode('/', trim($pattern, '/'));
         $parts = $this->parseWildcard($parts);
         $parts = array_map(array($this, 'parsePart'), $parts);
-        $parts = call_user_func_array('array_merge', $parts);
+        if ($parts) {
+            $parts = call_user_func_array('array_merge', $parts);
+        }
 
         $this->pattern  = $pattern;
         $this->parts    = $parts;
@@ -271,10 +294,6 @@ class Route {
                 }
                 $dispatch[$key] = null;
             }
-        }
-
-        if (!$dispatch) {
-            throw new InvalidArgumentException("Both the pattern '{$this->pattern}' and the dispatch information contain no routable information");
         }
 
         return $dispatch;
