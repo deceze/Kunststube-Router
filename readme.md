@@ -89,15 +89,15 @@ Named parameters from the pattern are considered part of the dispatcher informat
 
 1. the route:
 
-       $r->add('/foo/:action/\d+:id', array('controller' => 'foos'));
+        $r->add('/foo/:action/\d+:id', array('controller' => 'foos'));
 
 2. the URL:
 
-       /foo/view/42
+        /foo/view/42
 
 3. the dispatcher receives:
 
-       'controller' => 'foos', 'action' => 'view', 'id' => 42
+        'controller' => 'foos', 'action' => 'view', 'id' => 42
 
 Any named parameters from the pattern are passed to the dispatcher (`action` and `id`). The default dispatcher information defined by the route (`controller => foos`) is merged together with the named parameters. Together they form the canonical dispatcher information for the route (`action`, `id` and `controller => foos`). The canonical dispatcher information should be thought of as the primary "id" of some controller/action in your app. This allows flexible reverse routing. For example, we'll assume a dispatcher like this:
 
@@ -335,15 +335,14 @@ Use this feature with care, since explicitly *not* all defined routes are being 
 Information
 -----------
 
-Version: Initial 0.slapped-it-together-on-a-slow-Sunday-and-did-some-general-testing
-Author:  David Zentgraf
-Contact: router@kunststube.net
-Web:     http://kunststube.net
-         https://github.com/deceze
+Version: Initial 0.slapped-it-together-on-a-slow-Sunday-and-did-some-general-testing  
+Author:  David Zentgraf  
+Contact: router@kunststube.net  
+Web:     http://kunststube.net, https://github.com/deceze/Kunststube-Router
 
 
 Disclaimer
 ----------
 
-The code is provided as is. Feel free to use it for anything you like. No warranty about anything.
+The code is provided as is. Feel free to use it for anything you like. No warranty about anything.  
 Currently just putting it out there, proper license may be applied in the future.
