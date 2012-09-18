@@ -63,4 +63,13 @@ class RouterTest extends PHPUnit_Framework_TestCase {
 		$r->route('/42/eng/foo%20_controller', array($noMatchMock, 'callback'));
 	}
 
+	public function testReverseRouting() {
+	    $r = new Router;
+	    $r->add('/foo',         array('controller' => 'foos', 'action' => 'index'));
+	    $r->add('/foo/:action', array('controller' => 'foos'));
+
+	    $this->assertEquals('/foo', $r->reverseRoute(array('controller' => 'foos', 'action' => 'index')));
+	    $this->assertEquals('/foo/bar', $r->reverseRoute(array('controller' => 'foos', 'action' => 'bar')));
+	}
+
 }
