@@ -126,9 +126,10 @@ This makes your URL structure rather inflexible though. You may eventually decid
 
     $r->add('/foo/\d+:id', array('controller' => 'foos', 'action' => 'view'));
 
-The above route will route the URL `/foo/42` to the same `'controller' => 'foos', 'action' => 'view', 'id' => 42`. Your page will still be hardcoded with the URL `/foo/view/42` all over the place. To solve this and keep your URL structure flexible, use reverse routing, which turns canonical dispatcher information and turns it back into URLs:
+The above route will route the URL `/foo/42` to the same `'controller' => 'foos', 'action' => 'view', 'id' => 42`. Your page will still have the hardcoded URL `/foo/view/42` all over the place though. To solve this and keep your URL structure flexible, use reverse routing, which takes canonical dispatcher information and turns it back into URLs:
 
-    printf('<a href="%s">Soo foo number 42</a>', $r->reverseRoute(array('controller' => 'foos', 'action' => 'view', 'id' => 42)));
+    $url = $r->reverseRoute(array('controller' => 'foos', 'action' => 'view', 'id' => 42));
+    printf('<a href="%s">Soo foo number 42</a>', $url);
     
 The `Router::reverseRoute` method takes a canonical dispatcher information array and spits out a URL, based on the first of your defined routes that matches it:
 
@@ -258,14 +259,13 @@ This gives you several different strategies for dealing with non-matches. You ca
         die($e->getMessage());
     }
 
-This is not recommended, since exceptions are expensive and since a 404 event is not really not an exceptional event, but it may tie in well with your existing error handling strategy.
+This is not recommended, since exceptions are expensive and since a 404 event is not really an exceptional event, but it may tie in well with your existing error handling strategy.
 
 It is usually better to pass a callback to `route()` as shown above. Lastly you can also define a catch-all route as your last route and deal with it:
 
     // define regular routes here...
 
     $r->add('/*', array(), 'ErrorHandler::handle404');
-    $r->route($_GET['url']);
 
 A catch-all route has the advantage that the URL will be parsed and your callback receives a regular `Route` object. This is not the case for callbacks passed to `route()`, which will only receive the non-matched URL as string.
 
@@ -279,7 +279,7 @@ You can modify and extend the behavior of Kunststube\Router. The most interestin
 
     $r = new Router(new CaseInsensitiveRouteFactory);
 
-The bulk of the routing logic resides in the `Route` objects. They are the onces parsing the URLs and matching them both ways. If not otherwise specified, the `Router` uses the `RouteFactory` to create new `Route` objects when you call `$r->add(...)`. The default `Route` objects are strictly case sensitive in their matching. An extension of the `Route` class called `CaseInsensitiveRoute` matches URLs and patterns even if their case is different.
+The bulk of the routing logic resides in the `Route` objects. They are the ones parsing the URLs and matching them both ways. If not otherwise specified, the `Router` uses the `RouteFactory` to create new `Route` objects when you call `Router::add`. The default `Route` objects are strictly case sensitive in their matching. An extension of the `Route` class called `CaseInsensitiveRoute` matches URLs and patterns even if their case differs.
 
 If you do not want all your routes to be case insensitive but only some, you can create a `CaseInsensitiveRoute` yourself and add it to the routing chain:
 
@@ -294,3 +294,40 @@ If you do not want all your routes to be case insensitive but only some, you can
     });
 
     $r->route('/Case/INSENSITIVE/rOuTe');
+
+
+The `Route` class
+-----------------
+
+The dispatcher callback will be passed an instance of `Route`. The main purpose of this is to give it access to the matched and parsed values. They can be directly accessed as properties of the object:
+
+    function (Route $route) {
+        echo $route->controller;
+        echo $route->action;
+    }
+
+The `Route` object can also be manipulated though and used to generate a new URL according to the set pattern. For example:
+
+    $r = new Route('/foo/:id');
+    $r->id = 42;
+    echo $r->url();  // /foo/42
+
+This creates a new `Route` object (what is usually done behind the scenes when you call `Router::add`), then sets the missing placeholder `id` to the value `42`, then generates a URL from the set values and the pattern. The values are strictly validated according to the pattern; the following will throw an `InvalidArgumentException`:
+
+    $r = new Route('/foo/\d+:id');
+    $r->id = 'bar';  // invalid value for pattern \d+
+
+Wildcard arguments are supported the same way, but only if the route supports wildcard arguments.
+
+This is mainly useful as efficient way to generate a URL for similar routes. Using `Router::reverseRoute`, all routes must be evaluated in order to find the matching route to generate the correct URL. If you already know the pattern of the URL though and just need to change a single value or two to regenerate the URL, doing so on the correct `Route` object is more efficient:
+
+    $r = new Router;
+    $r->add('/item/\d+:id', array(), function (Route $route) {
+        echo "Now visiting item {$route->id}. ";
+        $route->id = $route->id + 1;
+        echo "The next item is at " . $route->url();
+    });
+    $r->route('/item/42');  // Now visiting item 42. The next item is at /item/43
+
+Use this feature with care, since explictly *not* all defined routes are being evaluated and you may get results different from when you'd use reverse routing.
+

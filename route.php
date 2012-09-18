@@ -90,7 +90,7 @@ class Route {
 
         foreach ($comparison as $key => $value) {
             if (is_string($key) && isset($this->parts[$key])) {
-                if (preg_match("/^{$this->parts[$key]}\$/", $value)) {
+                if ($this->matchPart($key, $value)) {
                     $dispatch[$key] = $value;
                 } else {
                     return false;
@@ -189,7 +189,15 @@ class Route {
     }
 
     /**
-     * Returns the matched URL if any.
+     * @return boolean Whether this route supports wildcard args.
+     */
+    public function supportsWildcardArgs() {
+        return $this->wildcard;
+    }
+
+    /**
+     * Returns the last matched URL if any.
+     * May not be in sync with the current values set on the class if it has been modified.
      *
      * @return mixed The URL or null if non matched yet.
      */
@@ -204,6 +212,55 @@ class Route {
      */
     public function pattern() {
         return $this->pattern;
+    }
+
+    /**
+     * Set a dispatch value or wildcard value. If the value is not specified in the pattern, it will be set as wildcard value.
+     * If the route does not support wildcards, an exception will be thrown.
+     * If the value does not match the regex defined for the parameter (if any), an exception is thrown.
+     *
+     * @param string $name
+     * @param mixed $value
+     * @throws InvalidArgumentException if the name/value combintation is invalid for this route.
+     */
+    public function __set($name, $value) {
+        if (array_key_exists($name, $this->dispatch)) {
+            $this->setDispatchValue($name, $value);
+        } else {
+            $this->setWildcardArg($name, $value);
+        }
+    }
+
+    /**
+     * Sets a dispatch value.
+     * If the value does not match the regex defined for the parameter (if any), an exception is thrown.
+     *
+     * @param string $name
+     * @param mixed $value
+     * @throws InvalidArgumentException if the name/value combintation is invalid for this route.
+     */
+    public function setDispatchValue($name, $value) {
+        if (!array_key_exists($name, $this->dispatch)) {
+            throw new InvalidArgumentException("Route does not specify dispatch value called $name");
+        }
+        if (isset($this->parts[$name]) && !$this->matchPart($name, $value)) {
+            throw new InvalidArgumentException("Value '$value' does not match the rule {$this->parts[$name]} specified for $name");
+        }
+        $this->dispatch[$name] = $value;
+    }
+
+    /**
+     * Set a wildcard value. If the route does not support wildcards, an exception will be thrown.
+     *
+     * @param string $name
+     * @param mixed $value
+     * @throws InvalidArgumentException if the route does not support wildcards.
+     */
+    public function setWildcardArg($name, $value) {
+        if (!$this->wildcard) {
+            throw new InvalidArgumentException("Parameter '$name' not specified in route and route does not allow wildcard arguments");
+        }
+        $this->wildcardArgs[$name] = $value;
     }
 
 
@@ -258,6 +315,20 @@ class Route {
         }
         // named regex part (/.+:foo/)
         return array($match['name'] => $match['pattern']);
+    }
+
+    /**
+     * Confirms whether a part matches a value.
+     *
+     * @param string $name Name of the part, i.e. key from $this->parts.
+     * @param mixed $value A value to compare to.
+     * @return boolean
+     */
+    protected function matchPart($name, $value) {
+        if (!isset($this->parts[$name])) {
+            throw new LogicException("Part called $name does not exist");
+        }
+        return preg_match("/^{$this->parts[$name]}\$/", $value);
     }
 
     /**
