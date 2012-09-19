@@ -332,10 +332,151 @@ This is mainly useful as efficient way to generate a URL for similar routes. Usi
 Use this feature with care, since explicitly *not* all defined routes are being evaluated and you may get results different from when you'd use reverse routing.
 
 
+What URLs are and how to set up routing
+---------------------------------------
+
+A URL is simply a string consisting of several parts:
+
+    http://example.com/foo?bar=baz
+      |         |       |    |
+      |         |       |    +- query
+      |         |       +- path
+      |         +- host
+      +- scheme
+
+A URL may additionally have authentication information, a port and a fragment, but we'll try to keep it simple here. Kunststube\Router exclusively deals with the path. The scheme and query typically have no influence on routing and the host is typically handled by the web server.
+
+Assuming a typical setup using an Apache web server, Apache usually does the "routing" for you. It receives an HTTP request looking something like this:
+
+    GET /foo/bar/baz?some=parameters HTTP/1.1
+
+The web server is now free to respond to this request in any way it chooses. The default thing most web servers do is to map the URL's path to files on the hard disk. The web server will first figure out what the appropriate *DocumentRoot* is, i.e. the folder on disk that has been configured as "the public web folder". Let's assume the DocumentRoot is `/var/www`. It will then concatenate the request path to that root, resulting in `/var/www/foo/bar/baz`. It will then try to figure out if that file exists on disk and serve it up as response. If the requested file ends with `.php` or Apache is otherwise configured to treat the file as PHP file, it will first run the file through the PHP interpreter before returning its output.
+
+To use our own custom routing using a PHP router, we need to intercept the process of Apache looking up the file to serve on disk. This can be done in the Apache configuration files; but if you have access to these files I'm assuming you know what you're doing and won't go into the specific details of the best setup there. Instead I'll cover the typical case where you cannot or don't want to edit the core Apache configuration files and instead resort to `.htaccess` files. When Apache traverses the directory structure on the disk to find the correct file to serve, it checks in each directory whether a file called `.htaccess` is placed in it. If it finds one, it will execute and/or incorporate the rules defined within it into the file lookup process, then continue on to the next deeper directory in the path.
+
+What you want to achieve is to make Apache "find" and execute one particular PHP file for any and all requests and make the original URL available to that PHP file so it can do its own routing. The easiest, dirtiest way to do this is a simple `RewriteRule`:
+
+    <IfModule mod_rewrite.c>
+        RewriteEngine On
+        RewriteRule ^(.*)$ index.php?url=/$1 [QSA,L] 
+    </IfModule>
+
+Lets assume you put this into the file `/var/www/.htaccess`. When Apache starts its file lookup in that directory, it will parse these rewrite rules. The "internal state" of the path Apache is looking for at this point is `foo/bar/baz`. The regular expression `^(.*)$` of the `RewriteRule` will match that path (the expression basically says "match anything"), and the rule will rewrite the path to `index.php?url=/foo/bar/baz`. The original `some=parameters` is then appended again to that path/URL (due to the `QSA` flag). Apache will then continue looking for the now rewritten path `index.php`. So just put your code into `/var/www/index.php` and Apache will launch the PHP interpreter for it. PHP will be passed the URL query part `?url=/foo/bar/baz&some=parameters`, which in PHP can be accessed as `$_GET['url']` and `$_GET['some']`. So the complete setup looks like this:
+
+### Basic setup ###
+
+#### File/folder structure ####
+
+    /var
+        /www
+            .htaccess
+            index.php
+            /Kunststube
+                /Router
+                    Router.php
+                    ...
+
+#### .htaccess ####
+
+    <IfModule mod_rewrite.c>
+        RewriteEngine On
+        RewriteRule ^(.*)$ index.php?url=/$1 [QSA,L] 
+    </IfModule>
+
+#### index.php ####
+
+    <?php
+
+    require_once 'Kunststube/Router/Router.php';
+
+    $r = new Kunststube\Router\Router;
+    $r->add('/foo');
+    ...
+    $r->route($_GET['url']);
+
+And that's all there is to it. A basic rewrite rule that redirects every request to the same PHP file and appends the original URL as query parameter, which is then used to invoke the routing process.
+
+### Caveats and tweaks ###
+
+One important caveat to the above setup is that your URL cannot contain a query parameter called `url`, since the original query parameters are added back onto the rewritten URL. The URL `/foo/bar?url=baz` would be rewritten to:
+
+    index.php?url=/foo/bar&url=baz
+
+The second `url` parameter will replace the first. If you need to use the query parameter `url` in your application, choose a different parameter name for your rewrite rule.
+
+Secondly, note that the Kunststube\Router expects the URL passed to `route()` to start with a `/`. You can add that slash during the rewriting process as shown above, or in PHP; just make sure it's there.
+
+Third, you usually also have files you do not want to route through PHP, for example CSS and image files. You'll want those to be served by Apache directly. A good setup for this is as such:
+
+    /var
+        /Kunststube
+            /Router
+                ...
+        /MyApp
+            MyScript.php
+            ...
+        /www
+            .htaccess
+            index.php
+            /css
+                style.css
+                ...
+            /img
+                kitten.jpg
+                ...
+
+Take all the actual PHP files out of the public web root directory, only leave public asset files and a minimal `index.php` file in there. Adjust your RewriteRule to look like this:
+
+    <IfModule mod_rewrite.c>
+        RewriteEngine On
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteRule ^(.*)$ index.php?url=/$1 [QSA,L] 
+    </IfModule>
+
+The `RewriteCond` makes sure the `RewriteRule` only applies if the requested file does not physically exist (`!-f`). That means requests for the URL `css/style.css` will pass through as is, since the file does actually exist and Apache can serve it directly. Any requests for "imaginary" files that do not physically exist will go into `index.php` and can be routed there. Inside `index.php`, make sure to use the correct path to the router:
+
+    require_once '../Kunststube/Router/Router.php';
+
+In fact, it's better practice to define your routes elsewhere entirely and to use autoloaders to load required files, but this is outside the scope of this document.
+
+### Integration ###
+
+Given that Kunststube\Router only deals with the path, it is but a small part in your bigger application. If you require logic based on the scheme, host or query parameters, you will have to handle them separately. All this information is accessible in PHP through the `$_SERVER` super-global. You could easily customize routes depending on the host name for instance:
+
+    $r = new Kunststube\Router\Router;
+
+    switch ($_SERVER['HTTP_HOST']) {
+        case 'example.com' :
+            $r->add('/foo');
+            ...
+            break;
+
+        case 'elpmaxe.moc' :
+            $r->add('/bar');
+            ...
+            break;
+    }
+
+    $r->route($_GET['url']);
+
+For assembling reverse-routed URLs, it's advisable to create a wrapper function that will assemble complete URLs and only uses Kunststube\Router to generate the path component, but adds query parameters and possibly the host and scheme around that.
+
+To pass the router instance around to use it for reverse routing later, there are several ways to do so, but I'd recommend closures:
+
+    $r = new Kunststube\Router\Router;
+
+    $r->add('/foo', array(), function (Route $route) use ($r) {
+        $controller = new MyController;
+        $controller->run($r);
+    });
+
+This neatly injects the router instance further down into your call stack. Global variables, registries, wrapper objects that abstract the whole routing process etc. are other options you may consider.
+
+
 Information
 -----------
 
-Version: Initial 0.slapped-it-together-on-a-slow-Sunday-and-did-some-general-testing  
+Version: 0.1  
 Author:  David Zentgraf  
 Contact: router@kunststube.net  
 Web:     http://kunststube.net, https://github.com/deceze/Kunststube-Router
