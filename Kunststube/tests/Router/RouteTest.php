@@ -69,4 +69,9 @@ class RouteTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals('/foo/baz/wild:card', $r->url());
     }
 
+    public function testTrailingSlash() {
+        $r = new Route('/foo');
+        $this->assertInstanceOf('Kunststube\Router\Route', $r->matchUrl('/foo/'));
+    }
+
 }

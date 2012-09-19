@@ -377,7 +377,7 @@ class Route {
      * @return string
      */
     protected function buildRegex() {
-        return sprintf('/^%s%s$/', $this->regex, $this->wildcard ? '(.*)' : null);
+        return sprintf('/^%s%s\/?$/', $this->regex, $this->wildcard ? '(.*)' : null);
     }
 
     /**
