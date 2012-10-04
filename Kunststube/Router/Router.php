@@ -2,8 +2,8 @@
 
 namespace Kunststube\Router;
 
-use \InvalidArgumentException,
-	\RuntimeException;
+use InvalidArgumentException,
+	RuntimeException;
 
 
 class Router {
