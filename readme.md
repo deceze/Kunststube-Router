@@ -474,6 +474,11 @@ This is mainly useful as efficient way to generate a URL for similar routes. Usi
 
 Use this feature with care, since explicitly *not* all defined routes are being evaluated and you may get results different from when you'd use reverse routing.
 
+PSR-0
+-----
+
+The repository is organized so its contents can be dumped into a folder `Kunststube/Router/` and the naming be PSR-0 compliant.
+
 
 Information
 -----------

@@ -2,8 +2,8 @@
 
 namespace Kunststube\Router;
 
-require_once 'Kunststube/Router/RouteFactory.php';
-require_once 'Kunststube/Router/CaseInsensitiveRoute.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'RouteFactory.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'CaseInsensitiveRoute.php';
 
 
 class CaseInsensitiveRouteFactory extends RouteFactory {

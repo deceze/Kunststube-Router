@@ -3,7 +3,7 @@
 use Kunststube\Router\Router,
 	Kunststube\Router\Route;
 
-require_once 'Kunststube/Router/Router.php';
+require_once 'Router.php';
 
 
 class RouterTest extends PHPUnit_Framework_TestCase {

@@ -2,7 +2,7 @@
 
 use Kunststube\Router\Route;
 
-require_once 'Kunststube/Router/Route.php';
+require_once 'Route.php';
 
 
 class RouteTest extends PHPUnit_Framework_TestCase {

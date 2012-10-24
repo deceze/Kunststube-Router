@@ -4,9 +4,9 @@ use Kunststube\Router\Router,
 	Kunststube\Router\CaseInsensitiveRoute,
 	Kunststube\Router\CaseInsensitiveRouteFactory;
 
-require_once 'Kunststube/Router/Router.php';
-require_once 'Kunststube/Router/CaseInsensitiveRoute.php';
-require_once 'Kunststube/Router/CaseInsensitiveRouteFactory.php';
+require_once 'Router.php';
+require_once 'CaseInsensitiveRoute.php';
+require_once 'CaseInsensitiveRouteFactory.php';
 
 
 class CaseInsensitiveRouteTest extends PHPUnit_Framework_TestCase {

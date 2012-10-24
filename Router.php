@@ -18,7 +18,7 @@ class Router {
 	 */
 	public function __construct(RouteFactory $routeFactory = null) {
 		if (!$routeFactory) {
-			require_once 'Kunststube/Router/RouteFactory.php';
+			require_once __DIR__ . DIRECTORY_SEPARATOR . 'RouteFactory.php';
 			$routeFactory = new RouteFactory;
 		}
 		$this->routeFactory = $routeFactory;
