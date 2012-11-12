@@ -1,5 +1,5 @@
 {
-    "name": "Kunststube/Router",
+    "name": "kunststube/router",
     "description": "A flexible router/reverse router",
     "authors": [
         {
@@ -10,8 +10,5 @@
     "autoload": {
         "psr-0": { "Kunststube\\Router": "" }
     },
-    "target-dir": "Kunststube/Router",
-    "require": {
-
-    }
+    "target-dir": "Kunststube/Router"
 }
