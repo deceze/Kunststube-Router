@@ -1,0 +1,14 @@
+{
+    "name": "kunststube/router",
+    "description": "A flexible router/reverse router",
+    "authors": [
+        {
+            "name": "deceze",
+            "email": "info@kunststube.net"
+        }
+    ],
+    "autoload": {
+        "psr-0": { "Kunststube\\Router": "" }
+    },
+    "target-dir": "Kunststube/Router"
+}
