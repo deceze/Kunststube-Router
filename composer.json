@@ -1,14 +1,20 @@
 {
     "name": "kunststube/router",
     "description": "A flexible router/reverse router",
+    "keywords": ["router", "routing"],
+    "homepage": "https://github.com/deceze/Kunststube-Router",
     "authors": [
         {
-            "name": "deceze",
-            "email": "info@kunststube.net"
+            "name": "David Zentgraf",
+            "email": "router@kunststube.net",
+            "homepage": "http://kunststube.net"
         }
     ],
     "autoload": {
         "psr-0": { "Kunststube\\Router": "" }
+    },
+    "require": {
+        "php": ">=5.3.0"
     },
     "target-dir": "Kunststube/Router"
 }
