@@ -123,7 +123,7 @@ The above example shows how to route from a URL to a specific class method in a 
 
     <a href="/foo/view/42">See foo number 42</a>
 
-This makes your URL structure rather inflexible though. You may eventually decide to shorten those URLs to `/foos/42`, because that looks better. It's pretty easy to change the routing the accommodate that:
+This makes your URL structure rather inflexible though. You may eventually decide to shorten those URLs to `/foos/42`, because that looks better. It's pretty easy to change the routing to accommodate that:
 
     $r->add('/foo/\d+:id', array('controller' => 'foos', 'action' => 'view'));
 
@@ -484,7 +484,7 @@ The repository is organized so its contents can be dumped into a folder `Kunstst
 Information
 -----------
 
-Version: 0.1  
+Version: 0.1.1  
 Author:  David Zentgraf  
 Contact: router@kunststube.net  
 Web:     http://kunststube.net, https://github.com/deceze/Kunststube-Router

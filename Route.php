@@ -8,7 +8,7 @@ use InvalidArgumentException,
 
 class Route {
 
-	protected $pattern,
+    protected $pattern,
               $dispatch = array(),
               $wildcard = false,
               $parts    = array(),
