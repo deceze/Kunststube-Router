@@ -18,7 +18,8 @@ Kunststube\Router deals with the first two only. It allows you to specify rules 
 Usage example
 -------------
 
-    use Kunststube\Router\Router;
+    use Kunststube\Router\Router,
+        Kunststube\Router\Route;
 
     require_once 'Kunststube/Router/Router.php';
 
