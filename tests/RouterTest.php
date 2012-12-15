@@ -112,7 +112,68 @@ class RouterTest extends PHPUnit_Framework_TestCase {
 
 		$this->assertEquals('/42', $r->reverseRoute(array('controller' => 'foo', 'action' => 'bar', 'id' => 42)));
 		$this->assertEquals('/foo/baz', $r->reverseRoute(array('controller' => 'foo', 'action' => 'bar', 'id' => 'baz')));
-
 	}
+    
+    public function testRequestMethodRouting() {
+        $getMock = $this->getMock('stdClass', array('callback'));
+        $getMock->expects($this->exactly(2))->method('callback');
+        $postMock = $this->getMock('stdClass', array('callback'));
+        $postMock->expects($this->exactly(1))->method('callback');
+        $putMock = $this->getMock('stdClass', array('callback'));
+        $putMock->expects($this->exactly(1))->method('callback');
+        $deleteMock = $this->getMock('stdClass', array('callback'));
+        $deleteMock->expects($this->exactly(1))->method('callback');
+        
+        $r = new Router;
+        $r->addGet('/foo', array(), array($getMock, 'callback'));
+        $r->addPost('/foo', array(), array($postMock, 'callback'));
+        $r->addPut('/foo', array(), array($putMock, 'callback'));
+        $r->addDelete('/foo', array(), array($deleteMock, 'callback'));
+        
+        $r->route('/foo');
+        $r->routeMethod($r::GET, '/foo');
+        $r->routeMethod($r::POST, '/foo');
+        $r->routeMethod($r::PUT, '/foo');
+        $r->routeMethod($r::DELETE, '/foo');
+    }
+    
+    public function testHeadRouting() {
+        $callbackMock = $this->getMock('stdClass', array('callback'));
+        $callbackMock->expects($this->exactly(1))->method('callback');
+        
+        $r = new Router;
+        $r->addMethod($r::HEAD, '/*', array(), array($callbackMock, 'callback'));
+        $r->routeMethod($r::HEAD, '/foo');
+    }
+
+    public function testCombinedRouting() {
+        $callbackMock = $this->getMock('stdClass', array('callback'));
+        $callbackMock->expects($this->exactly(1))->method('callback');
+        
+        $r = new Router;
+        $r->addMethod($r::POST | $r::PUT, '/*', array(), array($callbackMock, 'callback'));
+        $r->routeMethod($r::POST, '/foo');
+    }
+
+    public function testCombinedRoutingNonMatch() {
+        $callbackMock = $this->getMock('stdClass', array('callback'));
+        $callbackMock->expects($this->never())->method('callback');
+        
+        $nonMatchCallbackMock = $this->getMock('stdClass', array('callback'));
+        $nonMatchCallbackMock->expects($this->exactly(1))->method('callback');
+        
+        $r = new Router;
+        $r->addMethod($r::POST | $r::PUT, '/*', array(), array($callbackMock, 'callback'));
+        $r->routeMethod($r::GET, '/foo', array($nonMatchCallbackMock, 'callback'));
+    }
+
+    public function testMethodStringRouting() {
+        $callbackMock = $this->getMock('stdClass', array('callback'));
+        $callbackMock->expects($this->exactly(1))->method('callback');
+        
+        $r = new Router;
+        $r->addMethod($r::POST, '/*', array(), array($callbackMock, 'callback'));
+        $r->routeMethodFromString('POST', '/foo');
+    }
 
 }

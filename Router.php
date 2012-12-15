@@ -252,7 +252,7 @@ class Router {
      * Returns matching request method constant from string representation.
      */
     protected function stringToRequestMethod($string) {
-        $self = new ReflectionClass($this);
+        $self = new \ReflectionClass($this);
         $method = $self->getConstant(strtoupper($string));
         if (!$method) {
             throw new InvalidArgumentException("Unsupported request method '$string'");
