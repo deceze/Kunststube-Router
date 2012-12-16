@@ -30,9 +30,6 @@ class Route {
      *  Example: /foo/:bar/\d+:baz/*
      *
      * @param array $dispatch Default values for the dispatcher.
-     *  If empty the $pattern must contain at least one named part,
-     *  otherwise the route is pointless and will throw an exception.
-     *
      * @throws InvalidArgumentException
      */
     public function __construct($pattern, array $dispatch = array()) {

@@ -18,28 +18,30 @@ Kunststube\Router deals with the first two only. It allows you to specify rules 
 Usage example
 -------------
 
-    use Kunststube\Router\Router,
-        Kunststube\Router\Route;
+```php
+use Kunststube\Router\Router,
+    Kunststube\Router\Route;
 
-    require_once 'Kunststube/Router/Router.php';
+require_once 'Kunststube/Router/Router.php';
 
-    $r = new Router;
+$r = new Router;
 
-    $r->add('/', array('controller' => 'static', 'action' => 'index'));
-    $r->add('/user/profile/:name', array('controller' => 'users', 'action' => 'profile'));
-    $r->add('/foo/bar', array(), function (Route $route) {
-        header('Location: /bar/baz');
-        exit;
-    });
-    $r->add('/:controller/:action/*');
+$r->add('/', array('controller' => 'static', 'action' => 'index'));
+$r->add('/user/profile/:name', array('controller' => 'users', 'action' => 'profile'));
+$r->add('/foo/bar', array(), function (Route $route) {
+    header('Location: /bar/baz');
+    exit;
+});
+$r->add('/:controller/:action/*');
 
-    $r->defaultCallback(function (Route $route) {
-        require_once 'MyDispatcher.php';
-        $dispatcher = new Dispatcher;
-        $dispatcher->dispatch($route);
-    });
+$r->defaultCallback(function (Route $route) {
+    require_once 'MyDispatcher.php';
+    $dispatcher = new Dispatcher;
+    $dispatcher->dispatch($route);
+});
 
-    $r->route($_GET['url']);
+$r->route($_GET['url']);
+```
 
 You add routes to the router using `Router::add`. This method takes three arguments:
 
@@ -102,14 +104,16 @@ Named parameters from the pattern are considered part of the dispatcher informat
 
 Any named parameters from the pattern are passed to the dispatcher (`action` and `id`). The default dispatcher information defined by the route (`controller => foos`) is merged together with the named parameters. Together they form the canonical dispatcher information for the route (`action`, `id` and `controller => foos`). The canonical dispatcher information should be thought of as the primary "id" of some controller/action in your app. This allows flexible reverse routing. For example, we'll assume a dispatcher like this:
 
-    function (Route $route) {
-        $className = ucfirst($route->controller) . 'Controller';
+```php
+function (Route $route) {
+    $className = ucfirst($route->controller) . 'Controller';
         
-        require_once "MyControllers/$className.php";
+    require_once "MyControllers/$className.php";
 
-        $controller = new $className;
-        $controller->{$route->action}($route->id);
-    }
+    $controller = new $className;
+    $controller->{$route->action}($route->id);
+}
+```
 
 `$route` is the matched route object passed from the router. The above dispatcher loads the file `FoosController.php`, instantiates a new `FoosController` class, then calls the method `->view(42)` on it. This shows a pretty simple way to load and execute any method of the `FoosController` with a numeric argument when any URL `/foo/(action)/(id)` is being requested.
 
@@ -121,41 +125,51 @@ Reverse Routing
 
 The above example shows how to route from a URL to a specific class method in a specific file. You typically want to output links in your app somewhere that will lead to this file/class/method again. You could do so by hard-coding all your links:
 
-    <a href="/foo/view/42">See foo number 42</a>
+```html
+<a href="/foo/view/42">See foo number 42</a>
+```
 
 This makes your URL structure rather inflexible though. You may eventually decide to shorten those URLs to `/foos/42`, because that looks better. It's pretty easy to change the routing to accommodate that:
 
-    $r->add('/foo/\d+:id', array('controller' => 'foos', 'action' => 'view'));
+```php
+$r->add('/foo/\d+:id', array('controller' => 'foos', 'action' => 'view'));
+```
 
 The above route will route the URL `/foo/42` to the same `'controller' => 'foos', 'action' => 'view', 'id' => 42`. Your page will still have the hard-coded URL `/foo/view/42` all over the place though. To solve this and keep your URL structure flexible, use reverse routing, which takes canonical dispatcher information and turns it back into URLs:
 
-    $url = $r->reverseRoute(array('controller' => 'foos', 'action' => 'view', 'id' => 42));
-    printf('<a href="%s">See foo number 42</a>', $url);
+```php
+$url = $r->reverseRoute(array('controller' => 'foos', 'action' => 'view', 'id' => 42));
+printf('<a href="%s">See foo number 42</a>', $url);
+```
     
 The `Router::reverseRoute` method takes a canonical dispatcher information array and spits out a URL, based on the first of your defined routes that matches it:
 
-    $r = new Router;
-    $r->add('/foo',         array('controller' => 'foos', 'action' => 'index'));
-    $r->add('/foo/:action', array('controller' => 'foos'));
+```php
+$r = new Router;
+$r->add('/foo',         array('controller' => 'foos', 'action' => 'index'));
+$r->add('/foo/:action', array('controller' => 'foos'));
 
-    echo $r->reverseRoute(array('controller' => 'foos', 'action' => 'index'));
-    // /foo
+echo $r->reverseRoute(array('controller' => 'foos', 'action' => 'index'));
+// /foo
 
-    echo $r->reverseRoute(array('controller' => 'foos', 'action' => 'bar'));
-    // /foo/bar
+echo $r->reverseRoute(array('controller' => 'foos', 'action' => 'bar'));
+// /foo/bar
+```
 
 Reverse routing allows you to flexibly tie your controllers and actions (or whatever other paradigm and organizational structure you prefer) to URLs and vice-versa. The canonical dispatcher information is the middle man that uniquely represents the same thing for both sides (hence *canonical*). Your defined routes turn URLs into dispatcher information through *routing* and dispatcher information into URLs through *reverse routing*.
 
 When reverse routing, regular expressions in the pattern are evaluated against the passed dispatcher information:
 
-    $r->add('/\d+:id',     array('controller' => 'foo', 'action' => 'bar'));
-    $r->add('/foo/\w+:id', array('controller' => 'foo', 'action' => 'bar'));
+```php
+$r->add('/\d+:id',     array('controller' => 'foo', 'action' => 'bar'));
+$r->add('/foo/\w+:id', array('controller' => 'foo', 'action' => 'bar'));
 
-    echo $r->reverseRoute(array('controller' => 'foo', 'action' => 'bar', 'id' => 42));
-    // /42
+echo $r->reverseRoute(array('controller' => 'foo', 'action' => 'bar', 'id' => 42));
+// /42
 
-    echo $r->reverseRoute(array('controller' => 'foo', 'action' => 'bar', 'id' => 'baz'));
-    // /foo/baz
+echo $r->reverseRoute(array('controller' => 'foo', 'action' => 'bar', 'id' => 'baz'));
+// /foo/baz
+```
 
 In the above example, the first route does not reverse match `array('controller' => 'foo', 'action' => 'bar', 'id' => 'baz')`, since `id` is defined as `\d+`, which does not match `'baz'`. The second route matches though.
 
@@ -165,8 +179,10 @@ Wild-card Arguments
 
 If a routing pattern is defined with a trailing `*`, it allows wild-card arguments, as explained above. These arguments can be either named or unnamed. For example:
 
-    $r->addRoute('/foo/*', array('controller' => 'foos'));
-    $r->route('/foo/bar/baz:42')
+```php
+$r->addRoute('/foo/*', array('controller' => 'foos'));
+$r->route('/foo/bar/baz:42')
+```
 
 The resulting dispatcher information will be simply `'controller' => 'foos'`, since no other parameters are specified in the route. The wild-card arguments the dispatcher receives will be `'bar', 'baz' => 42`, or technically `array(0 => 'bar', 'baz' => 42)`. In other words, values passed in `name:value` notation are broken apart and treated as associative key-value pairs.
 
@@ -176,14 +192,16 @@ When reverse routing, given dispatcher information that contains wild-card argum
 
 When reverse routing there is no distinction between dispatch information and wild-card arguments, they're all specified in one array. In other words, it is not possible to reverse route with conflicting dispatch/wild-card parameters. Avoid using the same names for two different purposes.
 
-    $r->add('/foo',       array('controller' => 'foos', 'action' => 'index'));
-    $r->add('/foo/bar/*', array('controller' => 'foos', 'action' => 'index'));
+```php
+$r->add('/foo',       array('controller' => 'foos', 'action' => 'index'));
+$r->add('/foo/bar/*', array('controller' => 'foos', 'action' => 'index'));
 
-    $r->reverseRoute(array('controller' => 'foos', 'action' => 'index'));
-    // /foo
+$r->reverseRoute(array('controller' => 'foos', 'action' => 'index'));
+// /foo
 
-    $r->reverseRoute(array('controller' => 'foos', 'action' => 'index', 'baz' => '42'));
-    // /foo/bar/baz:42
+$r->reverseRoute(array('controller' => 'foos', 'action' => 'index', 'baz' => '42'));
+// /foo/bar/baz:42
+```
 
 Both routes above have the same dispatcher information for `'controller' => 'foos', 'action' => 'index'`, but only one of them allows wild-card arguments. When reverse routing `array('controller' => 'foos', 'action' => 'index')`, the first route matches and `/foo` is returned. When reverse routing with an additional argument `'baz' => 42`, the first route does not match, but the second does.
 
@@ -195,45 +213,115 @@ Kunststube\Router does not dispatch, this is entirely up to you to add. Kunststu
 
 Couple a static route directly to a class method:
 
-    $r->add('/foo', array(), function () {
-        FooController::execute();
-    });
+```php
+$r->add('/foo', array(), function () {
+    FooController::execute();
+});
+```
 
 This could also be written like so:
 
-    $r->add('/foo', array(), 'FooController::execute');
+```php
+$r->add('/foo', array(), 'FooController::execute');
+```
 
 Redirects are easy to implement:
 
-    $r->add('/foo', array(), function () {
-        header('Location: /bar');
-        exit;
-    });
+```php
+$r->add('/foo', array(), function () {
+    header('Location: /bar');
+    exit;
+});
+```
 
 You can chain your dispatchers with preprocessing logic:
 
-    function dispatch(Route $route) {
-        $controller = $route->controller;
-        require "$controller.php";
-        $controller::{$route->action}();
-    }
+```php
+function dispatch(Route $route) {
+    $controller = $route->controller;
+    require "$controller.php";
+    $controller::{$route->action}();
+}
 
-    $r->add('/foo/:action', array(), function (Route $route) {
-        $route->controller = 'bar';
-        dispatch($route);
-    });
-    $r->add('/:controller/:action', array(), 'dispatch');
+$r->add('/foo/:action', array(), function (Route $route) {
+    $route->controller = 'bar';
+    dispatch($route);
+});
+$r->add('/:controller/:action', array(), 'dispatch');
+```
 
 The above basically aliases `/bar/...` to `/foo/...`. This is just for demonstrating the flexibility of callbacks; it could also have been written simpler like so:
 
-    $r->add('/foo/:action', array('controller' => 'bar'), 'dispatch');
-    $r->add('/:controller/:action', array(), 'dispatch');
+```php
+$r->add('/foo/:action', array('controller' => 'bar'), 'dispatch');
+$r->add('/:controller/:action', array(), 'dispatch');
+```
 
 To avoid having to pass the same callback to each of your routes, you can specify a default callback and write the above like so:
 
-    $r->add('/foo/:action', array('controller' => 'bar'));
-    $r->add('/:controller/:action');
-    $r->defaultCallback('dispatch');
+```php
+$r->add('/foo/:action', array('controller' => 'bar'));
+$r->add('/:controller/:action');
+$r->defaultCallback('dispatch');
+```
+
+
+RESTful routing (routing by request method)
+-------------------------------------------
+
+For more fine-grained routing the router allows specific HTTP request methods to be specified for each route. This is done using the following API methods:
+
+- `addGet(string $pattern [, array $dispatch [, callable $callback ] ])`
+- `addPost(string $pattern [, array $dispatch [, callable $callback ] ])`
+- `addPut(string $pattern [, array $dispatch [, callable $callback ] ])`
+- `addDelete(string $pattern [, array $dispatch [, callable $callback ] ])`
+- `addMethod(int $method, string $pattern [, array $dispatch [, callable $callback ] ])`
+- `addMethodRoute(int $method, Route $route [, callable $callback ])`
+
+The `Router::addMethodRoute` method is the canonical method to add all routes, the other methods are merely convenience wrappers around it. The `$method` is a bitmask of the following constants:
+
+- `Router::GET`
+- `Router::POST`
+- `Router::PUT`
+- `Router::DELETE`
+- `Router::HEAD`
+- `Router::TRACE`
+- `Router::OPTIONS`
+- `Router::CONNECT`
+
+The first four HTTP request methods have their own convenience wrapper (`addGet` etc.), the more uncommon methods `HEAD`, `TRACE`, `OPTIONS` and `CONNECT` can be used using the `addMethod` and `addMethodRoute` methods. Several methods can be combined by bitwise-ORing them. Using the `Router::add` and `Router::addRoute` methods defaults to adding the route matching `GET`, `POST`, `PUT` and `DELETE` requests. Examples:
+
+```php
+$r = new Router;
+
+// matches GET, POST, PUT and DELETE requests
+$r->add('/foo');
+
+// matches only GET requests
+$r->addGet('/bar');
+
+// matches the same URL as above, but only for POST requests
+$r->addPost('/bar');
+
+// matches PUT and POST requests
+$r->addMethod($r::PUT | $r::POST, '/baz');
+
+// custom route matching only HEAD requests
+$r->addMethodRoute($r::HEAD, new CaseInsensitiveRoute('/42'));
+```
+
+To initiate request method-specific routing, use `Router::routeMethod` or `Router::routeMethodFromString`. The former method requires one of the constants to be passed as argument while the latter accepts the request method as string:
+
+```php
+$r->routeMethod($r::POST, $_GET['url']);
+
+$r->routeMethodFromString('POST', $_GET['url']);
+$r->routeMethodFromString($_SERVER['REQUEST_METHOD'], $_GET['url']);
+```
+
+The normal `Router::route` method handles the request as if it was a GET, POST, PUT *or* DELETE and does not differentiate between them. I.e. it's a convenience wrapper around `Router::routeMethod(Router::GET | Router::POST | Router::PUT | Router::DELETE, $url)`. The router does not detect the current request method itself, it must be passed to one of the routing methods explictly.
+
+The request method is handled by the `Router` class, not by the `Route` class (see below). The `Route` object passed to the callback contains no information about the request method. You should include an appropriate parameter in the dispatcher array or pass the request method along to the dispatcher.
 
 
 Route matching
@@ -241,34 +329,42 @@ Route matching
 
 Routes are matched in order from the first route defined to the last one. The first route that matches invokes the associated callback (or the default callback) and stops the routing process. It is important to define your routes in the correct order. For example, the second route here will never be matched, since the first route matches everything:
 
-    $r->add('/*');
-    $r->add('/foo');
+```php
+$r->add('/*');
+$r->add('/foo');
+```
 
 This is powerful behavior, but also tricky. Generally you should define your specific, narrow routes before the broad catch-all routes.
 
 If no route matched a given URL, a `RuntimeException` is thrown. Alternatively you can pass a callback as second argument to `Router::route`, which will be called in case no URL matched:
 
-    $r->route($_GET['url'], function ($url) {
-        die("404: $url not found");
-    });
+```php
+$r->route($_GET['url'], function ($url) {
+    die("404: $url not found");
+});
+```
 
 No `RuntimeException` will be thrown in this case.
 
 This gives you several different strategies for dealing with non-matches. You can catch the thrown exception:
 
-    try {
-        $r->route($_GET['url']);
-    } catch (RuntimeException $e) {
-        die($e->getMessage());
-    }
+```php
+try {
+    $r->route($_GET['url']);
+} catch (RuntimeException $e) {
+    die($e->getMessage());
+}
+```
 
 This is not recommended, since exceptions are expensive and since a 404 event is not really an exceptional event, but it may tie in well with your existing error handling strategy.
 
 It is usually better to pass a callback to `route()` as shown above. Lastly you can also define a catch-all route as your last route and deal with it:
 
-    // define regular routes here...
+```php
+// define regular routes here...
 
-    $r->add('/*', array(), 'ErrorHandler::handle404');
+$r->add('/*', array(), 'ErrorHandler::handle404');
+```
 
 A catch-all route has the advantage that the URL will be parsed and your callback receives a regular `Route` object. This is not the case for callbacks passed to `route()`, which will only receive the non-matched URL as string.
 
@@ -326,14 +422,16 @@ Lets assume you put this into the file `/var/www/.htaccess`. When Apache starts 
 
 #### index.php ####
 
-    <?php
+```php
+<?php
 
-    require_once 'Kunststube/Router/Router.php';
+require_once 'Kunststube/Router/Router.php';
 
-    $r = new Kunststube\Router\Router;
-    $r->add('/foo');
-    ...
-    $r->route($_GET['url']);
+$r = new Kunststube\Router\Router;
+$r->add('/foo');
+...
+$r->route($_GET['url']);
+```
 
 And that's all there is to it. A basic rewrite rule that redirects every request to the same PHP file and appends the original URL as query parameter, which is then used to invoke the routing process.
 
@@ -376,7 +474,9 @@ Take all the actual PHP files out of the public web root directory, only leave p
 
 The `RewriteCond` makes sure the `RewriteRule` only applies if the requested file does not physically exist (`!-f`). That means requests for the URL `css/style.css` will pass through as is, since the file does actually exist and Apache can serve it directly. Any requests for "imaginary" files that do not physically exist will go into `index.php` and can be routed there. Inside `index.php`, make sure to use the correct path to the router:
 
-    require_once '../Kunststube/Router/Router.php';
+```php
+require_once '../Kunststube/Router/Router.php';
+```
 
 In fact, it's better practice to define your routes elsewhere entirely and to use autoloaders to load required files, but this is outside the scope of this document.
 
@@ -384,32 +484,36 @@ In fact, it's better practice to define your routes elsewhere entirely and to us
 
 Given that Kunststube\Router only deals with the path, it is but a small part in your bigger application. If you require logic based on the scheme, host or query parameters, you will have to handle them separately. All this information is accessible in PHP through the `$_SERVER` super-global. You could easily customize routes depending on the host name for instance:
 
-    $r = new Kunststube\Router\Router;
+```php
+$r = new Kunststube\Router\Router;
 
-    switch ($_SERVER['HTTP_HOST']) {
-        case 'example.com' :
-            $r->add('/foo');
-            ...
-            break;
+switch ($_SERVER['HTTP_HOST']) {
+    case 'example.com' :
+        $r->add('/foo');
+        ...
+        break;
 
-        case 'elpmaxe.moc' :
-            $r->add('/bar');
-            ...
-            break;
-    }
+    case 'elpmaxe.moc' :
+        $r->add('/bar');
+        ...
+        break;
+}
 
-    $r->route($_GET['url']);
+$r->route($_GET['url']);
+```
 
 For assembling reverse-routed URLs, it's advisable to create a wrapper function that will assemble complete URLs and only uses Kunststube\Router to generate the path component, but adds query parameters and possibly the host and scheme around that.
 
 To pass the router instance around to use it for reverse routing later, there are several ways to do so, but I'd recommend closures:
 
-    $r = new Kunststube\Router\Router;
+```php
+$r = new Kunststube\Router\Router;
 
-    $r->add('/foo', array(), function (Route $route) use ($r) {
-        $controller = new MyController;
-        $controller->run($r);
-    });
+$r->add('/foo', array(), function (Route $route) use ($r) {
+    $controller = new MyController;
+    $controller->run($r);
+});
+```
 
 This neatly injects the router instance further down into your call stack. Global variables, registries, wrapper objects that abstract the whole routing process etc. are other options you may consider.
 
@@ -419,25 +523,29 @@ Extensions
 
 You can modify and extend the behavior of Kunststube\Router. The most interesting is probably to pass a custom `RouteFactory` to the `Router` constructor. Here an example using a `CaseInsensitiveRoute`:
 
-    require_once 'Kunststube/Router/CaseInsensitiveRouteFactory.php';
+```php
+require_once 'Kunststube/Router/CaseInsensitiveRouteFactory.php';
 
-    $r = new Router(new CaseInsensitiveRouteFactory);
+$r = new Router(new CaseInsensitiveRouteFactory);
+```
 
 The bulk of the routing logic resides in the `Route` objects. They are the ones parsing the URLs and matching them both ways. If not otherwise specified, the `Router` uses the `RouteFactory` to create new `Route` objects when you call `Router::add`. The default `Route` objects are strictly case sensitive in their matching. An extension of the `Route` class called `CaseInsensitiveRoute` matches URLs and patterns even if their case differs.
 
 If you do not want all your routes to be case insensitive but only some, you can create a `CaseInsensitiveRoute` yourself and add it to the routing chain:
 
-    require_once 'Kunststube/Router/CaseInsensitiveRoute.php';
+```php
+require_once 'Kunststube/Router/CaseInsensitiveRoute.php';
 
-    $r = new Router;
-    $r->add('/regular/case/sensitive/route');
+$r = new Router;
+$r->add('/regular/case/sensitive/route');
 
-    $caseInsensitiveRoute = new CaseInsensitiveRoute('/case/insensitive/route');
-    $r->addRoute($caseInsensitiveRoute, function () {
-        echo 'This will match';
-    });
+$caseInsensitiveRoute = new CaseInsensitiveRoute('/case/insensitive/route');
+$r->addRoute($caseInsensitiveRoute, function () {
+    echo 'This will match';
+});
 
-    $r->route('/Case/INSENSITIVE/rOuTe');
+$r->route('/Case/INSENSITIVE/rOuTe');
+```
 
 
 The `Route` class
@@ -445,35 +553,44 @@ The `Route` class
 
 The dispatcher callback will be passed an instance of `Route`. The main purpose of this is to give it access to the matched and parsed values. They can be directly accessed as properties of the object:
 
-    function (Route $route) {
-        echo $route->controller;
-        echo $route->action;
-    }
+```php
+function (Route $route) {
+    echo $route->controller;
+    echo $route->action;
+}
+```
 
 The `Route` object can also be manipulated though and used to generate a new URL according to the set pattern. For example:
 
-    $r = new Route('/foo/:id');
-    $r->id = 42;
-    echo $r->url();  // /foo/42
+```php
+$r = new Route('/foo/:id');
+$r->id = 42;
+echo $r->url();  // /foo/42
+```
 
 This creates a new `Route` object (what is usually done behind the scenes when you call `Router::add`), then sets the missing placeholder `id` to the value `42`, then generates a URL from the set values and the pattern. The values are strictly validated according to the pattern; the following will throw an `InvalidArgumentException`:
 
-    $r = new Route('/foo/\d+:id');
-    $r->id = 'bar';  // invalid value for pattern \d+
+```php
+$r = new Route('/foo/\d+:id');
+$r->id = 'bar';  // invalid value for pattern \d+
+```
 
 Wild-card arguments are supported the same way, but only if the route supports wild-card arguments.
 
 This is mainly useful as efficient way to generate a URL for similar routes. Using `Router::reverseRoute`, all routes must be evaluated in order to find the matching route to generate the correct URL. If you already know the pattern of the URL though and just need to change a single value or two to regenerate the URL, doing so on the correct `Route` object is more efficient:
 
-    $r = new Router;
-    $r->add('/item/\d+:id', array(), function (Route $route) {
-        echo "Now visiting item {$route->id}. ";
-        $route->id = $route->id + 1;
-        echo "The next item is at " . $route->url();
-    });
-    $r->route('/item/42');  // Now visiting item 42. The next item is at /item/43
+```php
+$r = new Router;
+$r->add('/item/\d+:id', array(), function (Route $route) {
+    echo "Now visiting item {$route->id}. ";
+    $route->id = $route->id + 1;
+    echo "The next item is at " . $route->url();
+});
+$r->route('/item/42');  // Now visiting item 42. The next item is at /item/43
+```
 
 Use this feature with care, since explicitly *not* all defined routes are being evaluated and you may get results different from when you'd use reverse routing.
+
 
 PSR-0
 -----
@@ -484,10 +601,22 @@ The repository is organized so its contents can be dumped into a folder `Kunstst
 Information
 -----------
 
-Version: 0.1.1  
+Version: 0.2  
 Author:  David Zentgraf  
 Contact: router@kunststube.net  
 Web:     http://kunststube.net, https://github.com/deceze/Kunststube-Router
+
+
+Version history
+---------------
+
+### 0.2
+
+Added APIs for routing by request method.
+
+### 0.1
+
+Initial release.
 
 
 Disclaimer
