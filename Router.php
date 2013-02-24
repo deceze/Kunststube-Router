@@ -2,8 +2,7 @@
 
 namespace Kunststube\Router;
 
-use InvalidArgumentException,
-    RuntimeException;
+use InvalidArgumentException;
 
 
 class Router {
@@ -149,7 +148,7 @@ class Router {
      * @param callable $noMatch Callback in case no route matched.
      * @return mixed Return value of whatever callback was invoked.
      * @throws InvalidArgumentException if $noMatch is not callable.
-     * @throws RuntimeException in case no route matched and no callback was supplied.
+     * @throws NotFoundException in case no route matched and no callback was supplied.
      */
     public function route($url, $noMatch = null) {
         return $this->routeMethod(self::GET | self::POST | self::PUT | self::DELETE, $url, $noMatch);
@@ -164,7 +163,7 @@ class Router {
      * @param callable $noMatch Callback in case no route matched.
      * @return mixed Return value of whatever callback was invoked.
      * @throws InvalidArgumentException if $method is not supported or $noMatch is not callable.
-     * @throws RuntimeException in case no route matched and no callback was supplied.
+     * @throws NotFoundException in case no route matched and no callback was supplied.
      */
     public function routeMethodFromString($method, $url, $noMatch = null) {
         return $this->routeMethod($this->stringToRequestMethod($method), $url, $noMatch);
@@ -178,7 +177,7 @@ class Router {
      * @param callable $noMatch Callback in case no route matched.
      * @return mixed Return value of whatever callback was invoked.
      * @throws InvalidArgumentException if $noMatch is not callable.
-     * @throws RuntimeException in case no route matched and no callback was supplied.
+     * @throws NotFoundException in case no route matched and no callback was supplied.
      */
     public function routeMethod($method, $url, $noMatch = null) {
         if ($noMatch && !is_callable($noMatch, true)) {
@@ -198,7 +197,7 @@ class Router {
             return call_user_func($noMatch, $url);
         }
         
-        throw new RuntimeException("No route matched $url");
+        throw new NotFoundException("No route matched $url");
     }
 
     /**
@@ -245,7 +244,7 @@ class Router {
             return call_user_func($this->defaultCallback, $route);
         }
 
-        throw new RuntimeException(sprintf('Route %s matched URL %s, but no callback given', $route->pattern(), $route->url()));
+        throw new NotFoundException(sprintf('Route %s matched URL %s, but no callback given', $route->pattern(), $route->url()));
     }
     
     /**
