@@ -336,7 +336,7 @@ $r->add('/foo');
 
 This is powerful behavior, but also tricky. Generally you should define your specific, narrow routes before the broad catch-all routes.
 
-If no route matched a given URL, a `RuntimeException` is thrown. Alternatively you can pass a callback as second argument to `Router::route`, which will be called in case no URL matched:
+If no route matched a given URL, a `NotFoundException` is thrown. Alternatively you can pass a callback as second argument to `Router::route`, which will be called in case no URL matched:
 
 ```php
 $r->route($_GET['url'], function ($url) {
@@ -344,14 +344,14 @@ $r->route($_GET['url'], function ($url) {
 });
 ```
 
-No `RuntimeException` will be thrown in this case.
+No `NotFoundException` will be thrown in this case.
 
 This gives you several different strategies for dealing with non-matches. You can catch the thrown exception:
 
 ```php
 try {
     $r->route($_GET['url']);
-} catch (RuntimeException $e) {
+} catch (Kunststube\Router\NotFoundException $e) {
     die($e->getMessage());
 }
 ```
@@ -609,6 +609,11 @@ Web:     http://kunststube.net, https://github.com/deceze/Kunststube-Router
 
 Version history
 ---------------
+
+### 0.2.1
+
+Changed thrown exception to specialized NotFoundException in case no route matched.
+Thanks Kévin Gomez (K-Phoen).
 
 ### 0.2
 

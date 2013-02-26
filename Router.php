@@ -197,6 +197,7 @@ class Router {
             return call_user_func($noMatch, $url);
         }
         
+        require_once __DIR__ . DIRECTORY_SEPARATOR . 'NotFoundException.php';
         throw new NotFoundException("No route matched $url");
     }
 

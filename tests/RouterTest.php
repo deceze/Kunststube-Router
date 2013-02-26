@@ -175,5 +175,13 @@ class RouterTest extends PHPUnit_Framework_TestCase {
         $r->addMethod($r::POST, '/*', array(), array($callbackMock, 'callback'));
         $r->routeMethodFromString('POST', '/foo');
     }
+    
+    /**
+     * @expectedException Kunststube\Router\NotFoundException
+     */
+    public function testNoRouteMatchException() {
+        $r = new Router;
+        $r->route('/foo');
+    }
 
 }
