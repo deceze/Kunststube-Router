@@ -12,6 +12,7 @@ class Route {
               $dispatch = array(),
               $wildcard = false,
               $parts    = array(),
+              $name,
               $regex;
 
     protected $url,
@@ -30,9 +31,10 @@ class Route {
      *  Example: /foo/:bar/\d+:baz/*
      *
      * @param array $dispatch Default values for the dispatcher.
+     * @param string $name The route name (default to null)
      * @throws InvalidArgumentException
      */
-    public function __construct($pattern, array $dispatch = array()) {
+    public function __construct($pattern, array $dispatch = array(), $name = null) {
         if (!is_string($pattern)) {
             throw new InvalidArgumentException('$pattern must be a string, got ' . gettype($pattern));
         }
@@ -43,7 +45,7 @@ class Route {
             throw new InvalidArgumentException("Pattern '$pattern' must start with a /");
         }
  
-        $this->initialize($pattern, $dispatch);
+        $this->initialize($pattern, $dispatch, $name);
     }
 
     /**
@@ -78,8 +80,9 @@ class Route {
      * @param array $comparison The dispatch array to match.
      * @return Route A copy of the route object with the matches populated, or false on non-match.
      */
-    public function matchDispatch(array $comparison) {
-        if (array_diff_key($this->dispatch, $comparison)) {
+    public function matchDispatch(array $comparison, $ignored_keys = array()) {
+        $dispatch = array_diff_key($this->dispatch, array_fill_keys($ignored_keys, 0));
+        if (array_diff_key($dispatch, $comparison)) {
             return false;
         }
 
@@ -261,11 +264,20 @@ class Route {
         $this->wildcardArgs[$name] = $value;
     }
 
+    /**
+     * Returns the current route name (can be null)
+     *
+     * @return mixed
+     */
+    public function getName() {
+        return $this->name;
+    }
+
 
     /**
      * Initializes the object.
      */
-    protected function initialize($pattern, array $dispatch) {
+    protected function initialize($pattern, array $dispatch, $name) {
         $parts = explode('/', trim($pattern, '/'));
         $parts = $this->parseWildcard($parts);
         $parts = array_map(array($this, 'parsePart'), $parts);
@@ -275,6 +287,7 @@ class Route {
 
         $this->pattern  = $pattern;
         $this->parts    = $parts;
+        $this->name     = $name;
         $this->regex    = $this->partsToRegex($parts);
         $this->dispatch = $this->partsToDispatch($parts, $dispatch);
     }

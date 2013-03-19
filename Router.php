@@ -39,9 +39,10 @@ class Router {
      * @param string $pattern
      * @param array $dispatch
      * @param callable $callback
+     * @param mixed $name
      */
-    public function add($pattern, array $dispatch = array(), $callback = null) {
-        $this->addMethodRoute(self::GET | self::POST | self::PUT | self::DELETE, $this->routeFactory->newRoute($pattern, $dispatch), $callback);
+    public function add($pattern, array $dispatch = array(), $callback = null, $name = null) {
+        $this->addMethodRoute(self::GET | self::POST | self::PUT | self::DELETE, $this->routeFactory->newRoute($pattern, $dispatch, $name), $callback);
     }
     
     /**
@@ -50,9 +51,10 @@ class Router {
      * @param string $pattern
      * @param array $dispatch
      * @param callable $callback
+     * @param mixed $name
      */
-    public function addGet($pattern, array $dispatch = array(), $callback = null) {
-        $this->addMethod(self::GET, $pattern, $dispatch, $callback);
+    public function addGet($pattern, array $dispatch = array(), $callback = null, $name = null) {
+        $this->addMethod(self::GET, $pattern, $dispatch, $callback, $name);
     }
 
     /**
@@ -61,9 +63,10 @@ class Router {
      * @param string $pattern
      * @param array $dispatch
      * @param callable $callback
+     * @param mixed $name
      */
-    public function addPost($pattern, array $dispatch = array(), $callback = null) {
-        $this->addMethod(self::POST, $pattern, $dispatch, $callback);
+    public function addPost($pattern, array $dispatch = array(), $callback = null, $name = null) {
+        $this->addMethod(self::POST, $pattern, $dispatch, $callback, $name);
     }
 
     /**
@@ -72,9 +75,10 @@ class Router {
      * @param string $pattern
      * @param array $dispatch
      * @param callable $callback
+     * @param mixed $name
      */
-    public function addPut($pattern, array $dispatch = array(), $callback = null) {
-        $this->addMethod(self::PUT, $pattern, $dispatch, $callback);
+    public function addPut($pattern, array $dispatch = array(), $callback = null, $name = null) {
+        $this->addMethod(self::PUT, $pattern, $dispatch, $callback, $name);
     }
 
     /**
@@ -83,9 +87,10 @@ class Router {
      * @param string $pattern
      * @param array $dispatch
      * @param callable $callback
+     * @param mixed $name
      */
-    public function addDelete($pattern, array $dispatch = array(), $callback = null) {
-        $this->addMethod(self::DELETE, $pattern, $dispatch, $callback);
+    public function addDelete($pattern, array $dispatch = array(), $callback = null, $name = null) {
+        $this->addMethod(self::DELETE, $pattern, $dispatch, $callback, $name);
     }
 
     /**
@@ -95,9 +100,10 @@ class Router {
      * @param string $pattern
      * @param array $dispatch
      * @param callable $callback
+     * @param mixed $name
      */
-    public function addMethod($method, $pattern, array $dispatch = array(), $callback = null) {
-        $this->addMethodRoute($method, $this->routeFactory->newRoute($pattern, $dispatch), $callback);
+    public function addMethod($method, $pattern, array $dispatch = array(), $callback = null, $name = null) {
+        $this->addMethodRoute($method, $this->routeFactory->newRoute($pattern, $dispatch, $name), $callback);
     }
 
     /**
@@ -124,7 +130,12 @@ class Router {
         if ($callback && !is_callable($callback, true)) {
             throw new InvalidArgumentException('$callback must be of type callable, got ' . gettype($callback));
         }
-        $this->routes[] = compact('method', 'route', 'callback');
+
+        if ($route->getName() !== null) {
+            $this->routes[$route->getName()] = compact('method', 'route', 'callback');
+        } else {
+            $this->routes[] = compact('method', 'route', 'callback');
+        }
     }
 
     /**
@@ -204,11 +215,40 @@ class Router {
      * Get a URL from a dispatch array.
      * Matches GET, POST, PUT and DELETE routes equally.
      *
+     * @param mixed $name
      * @param array $dispatch
      * @return mixed Matching URL or false if no match.
      */
-    public function reverseRoute(array $dispatch) {
-        return $this->reverseRouteMethod(self::GET | self::POST | self::PUT | self::DELETE, $dispatch);
+    public function reverseRoute($name, $dispatch = array(), array $ignored_dispatch_keys = array()) {
+        if (is_array($name)) {
+            return $this->reverseRouteMethod(self::GET | self::POST | self::PUT | self::DELETE, $name, $ignored_dispatch_keys);
+        } else {
+            return $this->reverseRouteName(self::GET | self::POST | self::PUT | self::DELETE, $name, $dispatch, $ignored_dispatch_keys);
+        }
+    }
+    
+    /**
+     * Get a URL from a name for a specific method.
+     *
+     * @param string name
+     * @param array $dispatch
+     * @return mixed Matching URL or false if no match.
+     */
+    public function reverseRouteName($method, $name, array $dispatch, array $ignored_dispatch_keys = array()) {
+        if (!isset($this->routes[$name])) {
+            return false;
+        }
+
+        $route = $this->routes[$name];
+        if (!($route['method'] & $method)) {
+            return false;
+        }
+
+        if ($match = $route['route']->matchDispatch($dispatch, $ignored_dispatch_keys)) {
+            return $match->url();
+        }
+
+        return false;
     }
     
     /**
@@ -217,12 +257,12 @@ class Router {
      * @param array $dispatch
      * @return mixed Matching URL or false if no match.
      */
-    public function reverseRouteMethod($method, array $dispatch) {
+    public function reverseRouteMethod($method, array $dispatch, array $ignored_dispatch_keys = array()) {
         foreach ($this->routes as $route) {
             if (!($route['method'] & $method)) {
                 continue;
             }
-            if ($match = $route['route']->matchDispatch($dispatch)) {
+            if ($match = $route['route']->matchDispatch($dispatch, $ignored_dispatch_keys)) {
                 return $match->url();
             }
         }
