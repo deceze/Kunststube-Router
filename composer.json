@@ -3,6 +3,7 @@
     "description": "A flexible router/reverse router",
     "keywords": ["router", "routing"],
     "homepage": "https://github.com/deceze/Kunststube-Router",
+    "version": "0.3-beta",
     "authors": [
         {
             "name": "David Zentgraf",
