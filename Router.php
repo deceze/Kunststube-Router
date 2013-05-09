@@ -208,6 +208,7 @@ class Router {
             return call_user_func($noMatch, $url);
         }
         
+        require_once __DIR__ . DIRECTORY_SEPARATOR . 'NotFoundException.php';
         throw new NotFoundException("No route matched $url");
     }
 
@@ -215,54 +216,46 @@ class Router {
      * Get a URL from a dispatch array.
      * Matches GET, POST, PUT and DELETE routes equally.
      *
-     * @param mixed $name
      * @param array $dispatch
-     * @return mixed Matching URL or false if no match.
+     * @return string|bool Matching URL or false if no match.
      */
-    public function reverseRoute($name, $dispatch = array(), array $ignored_dispatch_keys = array()) {
-        if (is_array($name)) {
-            return $this->reverseRouteMethod(self::GET | self::POST | self::PUT | self::DELETE, $name, $ignored_dispatch_keys);
-        } else {
-            return $this->reverseRouteName(self::GET | self::POST | self::PUT | self::DELETE, $name, $dispatch, $ignored_dispatch_keys);
-        }
+    public function reverseRoute(array $dispatch) {
+        return $this->reverseRouteMethod(self::GET | self::POST | self::PUT | self::DELETE, $dispatch);
     }
-    
+
     /**
-     * Get a URL from a name for a specific method.
+     * Get the URL of a named route.
+     * The named route must exist and the provided dispatch array must match it,
+     * otherwise a RuntimeException will be thrown.
      *
-     * @param string name
+     * @param       $name
      * @param array $dispatch
-     * @return mixed Matching URL or false if no match.
+     * @return string
+     * @throws \RuntimeException
      */
-    public function reverseRouteName($method, $name, array $dispatch, array $ignored_dispatch_keys = array()) {
+    public function reverseNamedRoute($name, array $dispatch = array()) {
         if (!isset($this->routes[$name])) {
-            return false;
+            throw new \RuntimeException(sprintf('Named route "%s" is not defined', $name));
         }
-
-        $route = $this->routes[$name];
-        if (!($route['method'] & $method)) {
-            return false;
+        if (!($match = $this->routes[$name]['route']->matchDispatch($dispatch))) {
+            throw new \RuntimeException(sprintf('Named route "%s" does not match the dispatch array %s', $name, var_export($dispatch, true)));
         }
-
-        if ($match = $route['route']->matchDispatch($dispatch, $ignored_dispatch_keys)) {
-            return $match->url();
-        }
-
-        return false;
+        return $match->url();
     }
-    
+
     /**
      * Get a URL from a dispatch array for a specific method.
      *
+     * @param       $method
      * @param array $dispatch
-     * @return mixed Matching URL or false if no match.
+     * @return string|bool Matching URL or false if no match.
      */
-    public function reverseRouteMethod($method, array $dispatch, array $ignored_dispatch_keys = array()) {
+    public function reverseRouteMethod($method, array $dispatch) {
         foreach ($this->routes as $route) {
             if (!($route['method'] & $method)) {
                 continue;
             }
-            if ($match = $route['route']->matchDispatch($dispatch, $ignored_dispatch_keys)) {
+            if ($match = $route['route']->matchDispatch($dispatch)) {
                 return $match->url();
             }
         }

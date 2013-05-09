@@ -176,4 +176,13 @@ class RouterTest extends PHPUnit_Framework_TestCase {
         $r->routeMethodFromString('POST', '/foo');
     }
 
+    public function testNamedReverseRouting() {
+        $r = new Router;
+        $r->add('/foo', array(), null, 'theFoo');
+        $r->add('/bar/\d+:baz', array(), null, 'theBar');
+
+        $this->assertEquals('/foo', $r->reverseNamedRoute('theFoo'));
+        $this->assertEquals('/bar/42', $r->reverseNamedRoute('theBar', array('baz' => 42)));
+    }
+
 }

@@ -44,8 +44,9 @@ class Route {
         if ($pattern[0] != '/') {
             throw new InvalidArgumentException("Pattern '$pattern' must start with a /");
         }
- 
-        $this->initialize($pattern, $dispatch, $name);
+
+        $this->name = $name;
+        $this->initialize($pattern, $dispatch);
     }
 
     /**
@@ -80,9 +81,8 @@ class Route {
      * @param array $comparison The dispatch array to match.
      * @return Route A copy of the route object with the matches populated, or false on non-match.
      */
-    public function matchDispatch(array $comparison, $ignored_keys = array()) {
-        $dispatch = array_diff_key($this->dispatch, array_fill_keys($ignored_keys, 0));
-        if (array_diff_key($dispatch, $comparison)) {
+    public function matchDispatch(array $comparison) {
+        if (array_diff_key($this->dispatch, $comparison)) {
             return false;
         }
 
@@ -145,6 +145,7 @@ class Route {
      * If identically named dispatch and wildcard arguments exist, only the dispatch values are returned.
      * To access a wildcard argument with conflicting name, use wildcardArg($name). Better yet: avoid conflicts.
      *
+     * @param $name
      * @return mixed The requested value or null if it does not exist.
      */
     public function __get($name) {
@@ -277,7 +278,7 @@ class Route {
     /**
      * Initializes the object.
      */
-    protected function initialize($pattern, array $dispatch, $name) {
+    protected function initialize($pattern, array $dispatch) {
         $parts = explode('/', trim($pattern, '/'));
         $parts = $this->parseWildcard($parts);
         $parts = array_map(array($this, 'parsePart'), $parts);
@@ -287,7 +288,6 @@ class Route {
 
         $this->pattern  = $pattern;
         $this->parts    = $parts;
-        $this->name     = $name;
         $this->regex    = $this->partsToRegex($parts);
         $this->dispatch = $this->partsToDispatch($parts, $dispatch);
     }
@@ -331,8 +331,9 @@ class Route {
     /**
      * Confirms whether a part matches a value.
      *
-     * @param string $name Name of the part, i.e. key from $this->parts.
-     * @param mixed $value A value to compare to.
+     * @param string $name  Name of the part, i.e. key from $this->parts.
+     * @param mixed  $value A value to compare to.
+     * @throws \LogicException
      * @return boolean
      */
     protected function matchPart($name, $value) {
@@ -395,6 +396,7 @@ class Route {
      * Modifies the matches in place to remove processed items, leaving unprocessed wildcard args.
      *
      * @param array &$matches
+     * @throws \LogicException
      */
     protected function mergeNamedMatches(array &$matches) {
         $i = 0;

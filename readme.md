@@ -266,6 +266,21 @@ $r->defaultCallback('dispatch');
 ```
 
 
+Named routes
+------------
+
+Routes can be named for quick reverse routing:
+
+```php
+$router->add('/foo/\d+:bar', array(), null, 'theFoo');
+
+$router->reverseNamedRoute('theFoo', array('bar' => 42));
+```
+
+This is a convenience feature to assign short names to routes independently of the dispatcher array.
+It's also useful if you're not using the dispatcher array much and rely more on immediate callbacks.
+
+
 RESTful routing (routing by request method)
 -------------------------------------------
 
