@@ -73,5 +73,13 @@ class RouteTest extends PHPUnit_Framework_TestCase {
         $r = new Route('/foo');
         $this->assertInstanceOf('Kunststube\Router\Route', $r->matchUrl('/foo/'));
     }
+    
+    public function testGroupedExpressionWithWildcards() {
+        $r = new Route('/foo/(bar|baz):id/*');
+        $m = $r->matchUrl('/foo/bar/42');
+        $this->assertInstanceOf('Kunststube\Router\Route', $m);
+        $this->assertEquals('bar', $m->id);
+        $this->assertEquals(array(42), $m->wildcardArgs());
+    }
 
 }

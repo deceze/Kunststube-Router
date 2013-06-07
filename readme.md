@@ -610,6 +610,10 @@ Web:     http://kunststube.net, https://github.com/deceze/Kunststube-Router
 Version history
 ---------------
 
+### 0.2.2
+
+Fix to allow grouping expressions in pattern together with wildcards, e.g.: `/foo/(bar|baz):id/*`
+
 ### 0.2.1
 
 Changed thrown exception to specialized NotFoundException in case no route matched.
