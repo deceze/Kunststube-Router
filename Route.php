@@ -65,8 +65,10 @@ class Route {
         $route = clone $this;
         $route->url = $url;
         $route->mergeNamedMatches($matches);
-        if ($route->wildcard) {
-            $route->wildcardArgs = $route->parseWildcardArgs(reset($matches));
+
+        // wildcard args, if present, should be the last element of the array and uniquely start with a slash
+        if ($route->wildcard && strpos($wildcards = end($matches), '/') === 0) {
+            $route->wildcardArgs = $route->parseWildcardArgs($wildcards);
         }
 
         return $route;
@@ -274,7 +276,6 @@ class Route {
         return $this->name;
     }
 
-
     /**
      * Initializes the object.
      */
@@ -393,13 +394,11 @@ class Route {
 
     /**
      * Merges named values matched from a URL into the dispatch array.
-     * Modifies the matches in place to remove processed items, leaving unprocessed wildcard args.
      *
-     * @param array &$matches
+     * @param array $matches
      * @throws \LogicException
      */
-    protected function mergeNamedMatches(array &$matches) {
-        $i = 0;
+    protected function mergeNamedMatches(array $matches) {
         foreach ($matches as $key => $value) {
             if (!is_string($key)) {
                 continue;
@@ -408,7 +407,6 @@ class Route {
                 throw new LogicException("Route has no dispatch key '$key', should not have matched");
             }
             $this->dispatch[$key] = $value;
-            unset($matches[$key], $matches[$i++]);
         }
     }
 
